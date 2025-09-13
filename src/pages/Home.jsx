@@ -116,5 +116,5 @@ const Home = () => {
     </div>
   );
 };
-// c
+
 export default Home;

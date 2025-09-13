@@ -1,89 +1,73 @@
-# 🥋 PhoDefense
+# Welcome to your Lovable project
 
-### 🔑 Onboarding & Environment Check
-- Camera/mic permissions, lighting/distance calibration.
-- Warm-up checklist, safety disclaimers, and injury waivers.
+## Project info
 
-### 📚 Technique Library
-- Cards for Krav Maga techniques with tags, demo media, and step phases.
-- Search and filter with difficulty levels.
+**URL**: https://lovable.dev/projects/d29d7d3a-0f5b-4a21-b1a2-71abc1a54c25
 
-### 🧑‍🏫 Guided Lesson Flow
-- **Learn → Drill → Assess** format for each technique.
-- Demo videos (GIFs/loops), text prompts, and real-time coaching.
+## How can I edit this code?
 
-### 🎥 Live Practice with Pose Tracking
-- Real-time skeleton overlay using **MediaPipe/MoveNet**.
-- Angle-based comparisons vs. reference poses.
-- Accuracy threshold: **90%+ for 3 seconds** to pass a pose.
-- Feedback prompts (e.g., “Raise elbow 10°”, “Wider stance”).
+There are several ways of editing your application.
 
-### 🏆 Scoring & Feedback
-- Point system:
-  - Start with 100 points per pose.
-  - Lose points if accuracy < 90%.
-  - Bonus points for quick completion.
-- Evaluations: **Poor, Good, Great, Excellent**.
-- Post-drill summary with scores, timing, and heatmaps.
+**Use Lovable**
 
-### 🤝 Multiplayer Modes
-- **Versus Battles**: Compete against friends in real-time.
-- **Turn-based scoring**: Player 1 completes drill, then Player 2, results compared.
-- Room system with WebRTC for video + WebSockets for scoring.
+Simply visit the [Lovable Project](https://lovable.dev/projects/d29d7d3a-0f5b-4a21-b1a2-71abc1a54c25) and start prompting.
 
-### 📈 Progress Tracking
-- History of sessions, streaks, and personal records.
-- Achievements and badges for milestones.
-- Per-joint heatmaps for form analysis.
+Changes made via Lovable will be committed automatically to this repo.
 
-### 🛡️ Safety & Accessibility
-- Warm-up and cooldown prompts.
-- Colorblind-safe UI, captions, and mirroring options.
-- “Not a substitute for professional training” disclaimer.
-- Optional SOS launcher for emergencies.
+**Use your preferred IDE**
 
-## ⚙️ Technical Stack
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-**Frontend**
-- [Next.js](https://nextjs.org/) + Tailwind CSS.
-- Zustand for state management.
-- React-webcam + `<canvas>` overlay.
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-**Backend**
-- [FastAPI](https://fastapi.tiangolo.com/) + SQLAlchemy.
-- WebSockets for real-time events.
-- Postgres (sessions, techniques, leaderboards).
-- Redis (presence, rooms).
-- S3/Cloud Storage for media and pose JSON.
+Follow these steps:
 
-**Computer Vision**
-- Pose detection: MediaPipe Pose / TF.js MoveNet Lightning.
-- Angles computed via cosine law + atan2.
-- Real-time smoothing with EMA.
-- Scoring via Mean Squared Error (MSE) + threshold rules.
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-**Multiplayer**
-- WebRTC (STUN/TURN via coturn).
-- Socket.IO for room state & scoring sync.
-- Anti-cheat: frame timestamp checks, jitter detection.
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
----
+# Step 3: Install the necessary dependencies.
+npm i
 
-## 📊 Minimal Data Model
-- **users**: profiles, settings, localization.
-- **sessions**: scores, metrics, pose-series storage.
-- **techniques & phases**: reference media, weights.
-- **rooms & members**: multiplayer states and scores.
-- **leaderboards & entries**: global/friends ranking.
+# Step 4: Start the development server with auto-reloading and an instant preview.
+npm run dev
+```
 
----
+**Edit a file directly in GitHub**
 
-## 🎮 Gameplay Loop
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-1. **Onboard** → Camera/lighting check, safety disclaimers.
-2. **Choose Mode** → Single-player or Multiplayer.
-3. **Modules** → Sequence of poses with demo + live tracking.
-4. **Pose Evaluation** → Must hold correct form at ≥90% accuracy for 3 seconds.
-5. **Scoring** → Points calculated based on accuracy and speed.
-6. **Results** → Percentages, per-pose breakdown, leaderboard updates.
-7. **Progress** → Save session stats, unlock achievements.
+**Use GitHub Codespaces**
+
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
+
+## What technologies are used for this project?
+
+This project is built with:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+
+## How can I deploy this project?
+
+Simply open [Lovable](https://lovable.dev/projects/d29d7d3a-0f5b-4a21-b1a2-71abc1a54c25) and click on Share -> Publish.
+
+## Can I connect a custom domain to my Lovable project?
+
+Yes, you can!
+
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

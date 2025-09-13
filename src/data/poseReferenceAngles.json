@@ -1,20 +1,120 @@
 {
     "poses": {
-        "guard": {
-            "name": "Guard Position",
+        "guardRight": {
+            "name": "Guard Position Right Jab",
             "description": "Basic defensive stance with hands up and knees slightly bent",
             "angles": {
                 "leftElbow": 90,
                 "rightElbow": 85,
-                "leftKnee": 150,
+                "leftKnee": 140,
                 "rightKnee": 150,
-                "leftShoulder": 50,
-                "rightShoulder": 50
+                "leftShoulder": 40,
+                "rightShoulder": 40
             },
             "weights": {
                 "leftElbow": 1.0,
                 "rightElbow": 1.0,
                 "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "guardLeft": {
+            "name": "Guard Position Left Jab",
+            "description": "Basic defensive stance with hands up and knees slightly bent",
+            "angles": {
+                "leftElbow": 100,
+                "rightElbow": 90,
+                "leftKnee": 130,
+                "rightKnee": 140,
+                "leftShoulder": 35,
+                "rightShoulder": 40
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "basicBlockRight": {
+            "name": "Basic Block with Right Hand",
+            "description": "Basic blocking technique with right hand",
+            "angles": {
+                "leftElbow": 80,
+                "rightElbow": 20,
+                "leftKnee": 120,
+                "rightKnee": 130,
+                "leftShoulder": 50,
+                "rightShoulder": 90
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "basicBlockLeft": {
+            "name": "Basic Block with Left Hand",
+            "description": "Basic blocking technique with left hand",
+            "angles": {
+                "leftElbow": 30,
+                "rightElbow": 60,
+                "leftKnee": 120,
+                "rightKnee": 130,
+                "leftShoulder": 100,
+                "rightShoulder": 80
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "crane": {
+            "name": "Crane Stance",
+            "description": "Crane stance to prepare for an attack",
+            "angles": {
+                "leftElbow": 60,
+                "rightElbow": 60,
+                "leftKnee": 100,
+                "rightKnee": 120,
+                "leftShoulder": 60,
+                "rightShoulder": 70
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.1,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "craneKick": {
+            "name": "Crane Kick",
+            "description": "Crane kick to prepare for an attack",
+            "angles": {
+                "leftElbow": 170,
+                "rightElbow": 170,
+                "leftKnee": 100,
+                "rightKnee": 170,
+                "leftShoulder": 150,
+                "rightShoulder": 145
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.1,
                 "rightKnee": 0.5,
                 "leftShoulder": 1.0,
                 "rightShoulder": 1.0

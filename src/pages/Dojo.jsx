@@ -29,6 +29,8 @@ const Dojo = () => {
     const [feedback, setFeedback] = useState("");
     const [cameraActive, setCameraActive] = useState(false);
     const [cameraError, setCameraError] = useState("");
+    const [accuracyTimer, setAccuracyTimer] = useState(0);
+    const [isAccuracyTimerActive, setIsAccuracyTimerActive] = useState(false);
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const canvasRef = useRef(null);
@@ -74,7 +76,7 @@ const Dojo = () => {
     const poses = [
         {
             id: 1,
-            name: "Guard Position",
+            name: "Guard Position Right Jab",
             description:
                 "Maintain a balanced defensive stance with hands raised",
             keyPoints: [
@@ -86,7 +88,7 @@ const Dojo = () => {
         },
         {
             id: 2,
-            name: "Defensive Stance",
+            name: "Guard Position Left Jab",
             description:
                 "Lower defensive position ready to block incoming attacks",
             keyPoints: [
@@ -98,7 +100,7 @@ const Dojo = () => {
         },
         {
             id: 3,
-            name: "Basic Block",
+            name: "Basic Block with Right Hand",
             description: "Execute a fundamental blocking movement",
             keyPoints: [
                 "Forearm parallel to ground",
@@ -109,7 +111,7 @@ const Dojo = () => {
         },
         {
             id: 4,
-            name: "Ready Position",
+            name: "Basic Block with Left Hand",
             description: "Return to neutral combat-ready stance",
             keyPoints: [
                 "Relaxed but alert",
@@ -118,9 +120,42 @@ const Dojo = () => {
                 "Ready to react",
             ],
         },
+        {
+            id: 5,
+            name: "Crane Stance",
+            description: "Crane stance",
+            keyPoints: ["Hands at sides", "Weight balanced", "Ready to react"],
+        },
+        {
+            id: 6,
+            name: "Crane Kick!",
+            description: "Crane kick",
+            keyPoints: ["Hands at sides", "Weight balanced", "Just Kick!"],
+        },
     ];
 
     const currentPoseData = poses[currentPose];
+
+    // Function to get reference angles and weights for current pose
+    const getPoseReferenceData = (poseIndex) => {
+        switch (poseIndex) {
+            case 0: // First pose - Guard Position Right Jab
+                return poseReferenceAngles.poses.guardRight;
+            case 1: // Second pose - Guard Position Left Jab
+                return poseReferenceAngles.poses.guardLeft;
+            case 2: // Third pose - Basic Block with Right Hand
+                return poseReferenceAngles.poses.basicBlockRight;
+            case 3: // Fourth pose - Basic Block with Left Hand
+                return poseReferenceAngles.poses.basicBlockLeft;
+            case 4: // Fifth pose - Crane Stance
+                return poseReferenceAngles.poses.crane;
+            case 5: // Sixth pose - Crane Kick!
+                return poseReferenceAngles.poses.craneKick;
+            default:
+                // Default to guardRight for any additional poses
+                return poseReferenceAngles.poses.guardRight;
+        }
+    };
 
     // MediaPipe initialization
     useEffect(() => {
@@ -280,12 +315,12 @@ const Dojo = () => {
 
         // Define tolerance for each joint type (in degrees)
         const tolerances = {
-            leftElbow: 8,
-            rightElbow: 8,
-            leftKnee: 8,
-            rightKnee: 8,
-            leftShoulder: 8,
-            rightShoulder: 8,
+            leftElbow: 10,
+            rightElbow: 10,
+            leftKnee: 10,
+            rightKnee: 10,
+            leftShoulder: 10,
+            rightShoulder: 10,
         };
 
         // Calculate accuracy for each joint
@@ -519,6 +554,11 @@ const Dojo = () => {
             poseAnimationRef.current = null;
         }
 
+        // Reset accuracy and timer when camera stops
+        setAccuracy(0);
+        setAccuracyTimer(0);
+        setIsAccuracyTimerActive(false);
+
         setCameraActive(false);
     };
 
@@ -550,14 +590,14 @@ const Dojo = () => {
 
     // Update accuracy immediately when overallAccuracy changes
     useEffect(() => {
-        if (isTraining && overallAccuracy > 0) {
+        if (isTraining && cameraActive && overallAccuracy > 0) {
             setAccuracy(overallAccuracy);
         }
-    }, [overallAccuracy, isTraining]);
+    }, [overallAccuracy, isTraining, cameraActive]);
 
     // Update accuracy every 0.5 seconds during training for fallback
     useEffect(() => {
-        if (isTraining) {
+        if (isTraining && cameraActive) {
             const interval = setInterval(() => {
                 if (poseResults && poseResults.poseLandmarks) {
                     // Update accuracy based on actual pose detection
@@ -575,20 +615,60 @@ const Dojo = () => {
 
             return () => clearInterval(interval);
         }
-    }, [isTraining, poseResults, overallAccuracy]);
+    }, [isTraining, cameraActive, poseResults, overallAccuracy]);
+
+    // Monitor accuracy and manage timer for pose progression
+    useEffect(() => {
+        if (isTraining && cameraActive && accuracy >= 90) {
+            // Start or continue the timer
+            if (!isAccuracyTimerActive) {
+                setIsAccuracyTimerActive(true);
+                setAccuracyTimer(0);
+            }
+        } else if (isTraining && cameraActive && accuracy < 90) {
+            // Reset timer if accuracy falls below 90%
+            if (isAccuracyTimerActive) {
+                setIsAccuracyTimerActive(false);
+                setAccuracyTimer(0);
+            }
+        }
+    }, [accuracy, isTraining, cameraActive, isAccuracyTimerActive]);
+
+    // Timer effect - increment timer every second when active
+    useEffect(() => {
+        if (isAccuracyTimerActive && isTraining && cameraActive) {
+            const timerInterval = setInterval(() => {
+                setAccuracyTimer((prev) => {
+                    const newTime = prev + 1;
+                    if (newTime >= 3) {
+                        // Timer reached 3 seconds, progress to next pose
+                        progressToNextPose();
+                        return 0;
+                    }
+                    return newTime;
+                });
+            }, 1000);
+
+            return () => clearInterval(timerInterval);
+        }
+    }, [isAccuracyTimerActive, isTraining, cameraActive]);
 
     const handleStartTraining = async () => {
+        // Reset timer when starting training
+        setAccuracyTimer(0);
+        setIsAccuracyTimerActive(false);
+
         // Set reference angles and weights FIRST before starting camera
-        const guardData = poseReferenceAngles.poses.guard;
-        const guardAngles = guardData.angles;
-        const guardWeights = guardData.weights;
+        const poseData = getPoseReferenceData(currentPose);
+        const poseAngles = poseData.angles;
+        const poseWeights = poseData.weights;
 
-        setReferenceAngles(guardAngles);
-        referenceAnglesRef.current = guardAngles; // Also set ref for immediate access
-        referenceWeightsRef.current = guardWeights; // Store weights for calculation
+        setReferenceAngles(poseAngles);
+        referenceAnglesRef.current = poseAngles; // Also set ref for immediate access
+        referenceWeightsRef.current = poseWeights; // Store weights for calculation
 
-        console.log("Reference angles set:", guardAngles);
-        console.log("Reference weights set:", guardWeights);
+        console.log("Reference angles set:", poseAngles);
+        console.log("Reference weights set:", poseWeights);
 
         await startCamera();
         setIsTraining(true);
@@ -598,7 +678,47 @@ const Dojo = () => {
     const handlePauseTraining = () => {
         setIsTraining(false);
         stopCamera();
+        // Stop and reset timer when pausing
+        setAccuracyTimer(0);
+        setIsAccuracyTimerActive(false);
         setFeedback("Training paused. Click resume when ready.");
+    };
+
+    // Function to progress to next pose
+    const progressToNextPose = () => {
+        // Stop and reset timer immediately
+        setAccuracyTimer(0);
+        setIsAccuracyTimerActive(false);
+
+        if (currentPose < poses.length - 1) {
+            // Turn off camera and pause training
+            stopCamera();
+            setIsTraining(false);
+
+            // Move to next pose
+            setCurrentPose((prev) => prev + 1);
+            setScore((prev) => prev + 5);
+            setFeedback(
+                "Pose completed! Click 'Start Training' to begin the next pose."
+            );
+
+            // Set reference angles for the new pose
+            const nextPoseIndex = currentPose + 1;
+            if (nextPoseIndex < poses.length) {
+                const poseData = getPoseReferenceData(nextPoseIndex);
+                const poseAngles = poseData.angles;
+                const poseWeights = poseData.weights;
+
+                setReferenceAngles(poseAngles);
+                referenceAnglesRef.current = poseAngles;
+                referenceWeightsRef.current = poseWeights;
+            }
+        } else {
+            // All poses completed
+            setIsTraining(false);
+            stopCamera();
+            setFeedback("Module completed! Excellent work!");
+        }
     };
 
     const isCompleted = currentPose >= poses.length;
@@ -652,7 +772,7 @@ const Dojo = () => {
                             )}
 
                             {/* Training Overlays */}
-                            {isTraining && (
+                            {isTraining && cameraActive && (
                                 <>
                                     <div className="absolute top-4 left-4 z-30">
                                         <Badge
@@ -666,13 +786,13 @@ const Dojo = () => {
                                             {accuracy.toFixed(1)}% Accuracy
                                         </Badge>
                                     </div>
-                                    {holdTimer > 0 && (
+                                    {accuracyTimer > 0 && (
                                         <div className="absolute top-4 right-4 z-30">
                                             <Badge
                                                 variant="outline"
-                                                className="bg-primary text-primary-foreground"
+                                                className="bg-primary text-primary-foreground text-lg font-bold px-4 py-2"
                                             >
-                                                Hold: {holdTimer}/3s
+                                                Hold: {accuracyTimer}/3s
                                             </Badge>
                                         </div>
                                     )}
@@ -734,16 +854,51 @@ const Dojo = () => {
                                                     currentPose <
                                                     poses.length - 1
                                                 ) {
+                                                    // Stop and reset timer immediately
+                                                    setAccuracyTimer(0);
+                                                    setIsAccuracyTimerActive(
+                                                        false
+                                                    );
+
+                                                    // Turn off camera and pause training
+                                                    stopCamera();
+                                                    setIsTraining(false);
+
+                                                    // Move to next pose
                                                     setCurrentPose(
                                                         (prev) => prev + 1
                                                     );
-                                                    setHoldTimer(0);
                                                     setScore(
                                                         (prev) => prev + 5
                                                     );
                                                     setFeedback(
-                                                        "Moving to next position..."
+                                                        "Pose completed! Click 'Start Training' to begin the next pose."
                                                     );
+
+                                                    // Set reference angles for the new pose
+                                                    const nextPoseIndex =
+                                                        currentPose + 1;
+                                                    if (
+                                                        nextPoseIndex <
+                                                        poses.length
+                                                    ) {
+                                                        const poseData =
+                                                            getPoseReferenceData(
+                                                                nextPoseIndex
+                                                            );
+                                                        const poseAngles =
+                                                            poseData.angles;
+                                                        const poseWeights =
+                                                            poseData.weights;
+
+                                                        setReferenceAngles(
+                                                            poseAngles
+                                                        );
+                                                        referenceAnglesRef.current =
+                                                            poseAngles;
+                                                        referenceWeightsRef.current =
+                                                            poseWeights;
+                                                    }
                                                 }
                                             }}
                                             disabled={
@@ -752,6 +907,64 @@ const Dojo = () => {
                                         >
                                             Next Pose
                                         </Button>
+                                        {/* Crane Stance Override Button */}
+                                        {(currentPose === 4 ||
+                                            currentPose === 5) && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                                                onClick={() => {
+                                                    // Stop and reset timer immediately
+                                                    setAccuracyTimer(0);
+                                                    setIsAccuracyTimerActive(
+                                                        false
+                                                    );
+
+                                                    // Turn off camera and pause training
+                                                    stopCamera();
+                                                    setIsTraining(false);
+
+                                                    // Move to next pose
+                                                    setCurrentPose(
+                                                        (prev) => prev + 1
+                                                    );
+                                                    setScore(
+                                                        (prev) => prev + 5
+                                                    );
+                                                    setFeedback(
+                                                        "Crane stance skipped! Click 'Start Training' to begin the next pose."
+                                                    );
+
+                                                    // Set reference angles for the new pose
+                                                    const nextPoseIndex =
+                                                        currentPose + 1;
+                                                    if (
+                                                        nextPoseIndex <
+                                                        poses.length
+                                                    ) {
+                                                        const poseData =
+                                                            getPoseReferenceData(
+                                                                nextPoseIndex
+                                                            );
+                                                        const poseAngles =
+                                                            poseData.angles;
+                                                        const poseWeights =
+                                                            poseData.weights;
+
+                                                        setReferenceAngles(
+                                                            poseAngles
+                                                        );
+                                                        referenceAnglesRef.current =
+                                                            poseAngles;
+                                                        referenceWeightsRef.current =
+                                                            poseWeights;
+                                                    }
+                                                }}
+                                            >
+                                                Skip Pose
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -853,8 +1066,9 @@ const Dojo = () => {
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
                                 <strong>Pro Tip:</strong> Maintain 90% accuracy
-                                for 3 seconds to complete each pose. Focus on
-                                form over speed for better results.
+                                for 3 seconds to automatically progress to the
+                                next pose. Focus on form over speed for better
+                                results.
                             </AlertDescription>
                         </Alert>
                     </div>
