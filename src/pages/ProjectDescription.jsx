@@ -37,10 +37,10 @@ const ProjectDescription = () => {
           <Card className="p-6 bg-card/80 backdrop-blur-sm border-border">
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-semibold">About PhoDefense</h2>
+              <h2 className="text-2xl font-semibold">About Kravity</h2>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              PhoDefense is an educational Krav Maga training application that uses AI-powered pose detection 
+              Kravity is an educational Krav Maga training application that uses AI-powered pose detection 
               to help you learn and practice self-defense techniques. Our system provides real-time feedback 
               on your form and technique, helping you build muscle memory and improve your defensive capabilities.
             </p>
