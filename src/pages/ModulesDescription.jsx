@@ -36,6 +36,8 @@ const ModulesDescription = () => {
                 "Defensive Block Stance with Right Hand",
                 "Knee Defense with Left Hand",
                 "Knee Defense with Right Hand",
+                "Crane Stance",
+                "Crane Kick!",
             ],
             estimatedTime: "10-15 min",
         },

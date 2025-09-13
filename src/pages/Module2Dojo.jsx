@@ -101,7 +101,7 @@ const Module2Dojo = () => {
         },
         {
             id: 3,
-            name: "Knee Defense with Right Hand",
+            name: "Knee Defense with Left Hand",
             description: "Execute a fundamental blocking movement",
             keyPoints: [
                 "Forearm parallel to ground",
@@ -112,7 +112,7 @@ const Module2Dojo = () => {
         },
         {
             id: 4,
-            name: "Knee Defense with Left Hand",
+            name: "Knee Defense with Right Hand",
             description: "Return to neutral combat-ready stance",
             keyPoints: [
                 "Relaxed but alert",
@@ -144,17 +144,17 @@ const Module2Dojo = () => {
                 return poseReferenceAngles.poses.defensiveBlockLeft;
             case 1: // Second pose - Defensive Block Stance with Right Hand
                 return poseReferenceAngles.poses.defensiveBlockRight;
-            case 2: // Third pose - Basic Block with Right Hand
-                return poseReferenceAngles.poses.basicBlockRight;
-            case 3: // Fourth pose - Basic Block with Left Hand
-                return poseReferenceAngles.poses.basicBlockLeft;
+            case 2: // Third pose - Knee Defense with Left Hand
+                return poseReferenceAngles.poses.kneeDefenseLeft;
+            case 3: // Fourth pose - Knee Defense with Right Hand
+                return poseReferenceAngles.poses.kneeDefenseRight;
             case 4: // Fifth pose - Crane Stance
                 return poseReferenceAngles.poses.crane;
             case 5: // Sixth pose - Crane Kick!
                 return poseReferenceAngles.poses.craneKick;
             default:
                 // Default to guardRight for any additional poses
-                return poseReferenceAngles.poses.guardRight;
+                return poseReferenceAngles.poses.defensiveBlockLeft;
         }
     };
 
@@ -316,12 +316,12 @@ const Module2Dojo = () => {
 
         // Define tolerance for each joint type (in degrees)
         const tolerances = {
-            leftElbow: 10,
-            rightElbow: 10,
-            leftKnee: 10,
-            rightKnee: 10,
-            leftShoulder: 10,
-            rightShoulder: 10,
+            leftElbow: 12,
+            rightElbow: 12,
+            leftKnee: 12,
+            rightKnee: 12,
+            leftShoulder: 12,
+            rightShoulder: 12,
         };
 
         // Calculate accuracy for each joint
@@ -641,8 +641,8 @@ const Module2Dojo = () => {
             const timerInterval = setInterval(() => {
                 setAccuracyTimer((prev) => {
                     const newTime = prev + 1;
-                    if (newTime >= 3) {
-                        // Timer reached 3 seconds, progress to next pose
+                    if (newTime >= 2) {
+                        // Timer reached 2 seconds, progress to next pose
                         progressToNextPose();
                         return 0;
                     }
@@ -807,7 +807,7 @@ const Module2Dojo = () => {
                                                 variant="outline"
                                                 className="bg-primary text-primary-foreground text-lg font-bold px-4 py-2"
                                             >
-                                                Hold: {accuracyTimer}/3s
+                                                Hold: {accuracyTimer}/2s
                                             </Badge>
                                         </div>
                                     )}
@@ -1019,7 +1019,7 @@ const Module2Dojo = () => {
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
                                 <strong>Pro Tip:</strong> Maintain 90% accuracy
-                                for 3 seconds to automatically progress to the
+                                for 2 seconds to automatically progress to the
                                 next pose. Focus on form over speed for better
                                 results.
                             </AlertDescription>
