@@ -6,10 +6,18 @@
             "angles": {
                 "leftElbow": 90,
                 "rightElbow": 85,
-                "leftKnee": 165,
-                "rightKnee": 170,
+                "leftKnee": 150,
+                "rightKnee": 150,
                 "leftShoulder": 50,
                 "rightShoulder": 50
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
             }
         }
     }

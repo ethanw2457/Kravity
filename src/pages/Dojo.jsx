@@ -69,6 +69,7 @@ const Dojo = () => {
     const poseAnimationRef = useRef(null);
     const mediaPipeCameraRef = useRef(null);
     const referenceAnglesRef = useRef(null);
+    const referenceWeightsRef = useRef(null);
 
     const poses = [
         {
@@ -275,15 +276,16 @@ const Dojo = () => {
         const jointAccuracies = {};
         let totalAccuracy = 0;
         let jointCount = 0;
+        const weights = referenceWeightsRef.current || {};
 
         // Define tolerance for each joint type (in degrees)
         const tolerances = {
-            leftElbow: 5,
-            rightElbow: 5,
-            leftKnee: 5,
-            rightKnee: 5,
-            leftShoulder: 5,
-            rightShoulder: 5,
+            leftElbow: 8,
+            rightElbow: 8,
+            leftKnee: 8,
+            rightKnee: 8,
+            leftShoulder: 8,
+            rightShoulder: 8,
         };
 
         // Calculate accuracy for each joint
@@ -312,23 +314,36 @@ const Dojo = () => {
                 totalAccuracy += jointAccuracy;
                 jointCount++;
 
+                const weight = weights[joint] || 1.0;
                 console.log(
                     `${joint}: current=${currentAngles[joint]}°, target=${
                         targetAngles[joint]
-                    }°, error=${error}°, tolerance=${tolerance}°, accuracy=${jointAccuracy.toFixed(
+                    }°, error=${error}°, tolerance=${tolerance}°, weight=${weight}, accuracy=${jointAccuracy.toFixed(
                         1
                     )}%`
                 );
             }
         });
 
-        // Calculate overall accuracy as simple average of all joint accuracies
-        const overallAccuracy = jointCount > 0 ? totalAccuracy / jointCount : 0;
+        // Calculate weighted overall accuracy
+        let weightedTotal = 0;
+        let totalWeight = 0;
+
+        Object.keys(jointAccuracies).forEach((joint) => {
+            const weight = weights[joint] || 1.0;
+            weightedTotal += jointAccuracies[joint] * weight;
+            totalWeight += weight;
+        });
+
+        const overallAccuracy =
+            totalWeight > 0 ? weightedTotal / totalWeight : 0;
 
         // Store individual joint accuracies for potential display
         setIndividualJointAccuracies(jointAccuracies);
 
-        console.log(`Overall accuracy: ${overallAccuracy.toFixed(1)}%`);
+        console.log(
+            `Weighted overall accuracy: ${overallAccuracy.toFixed(1)}%`
+        );
 
         return overallAccuracy;
     };
@@ -533,34 +548,47 @@ const Dojo = () => {
         }
     }, [isTraining, cameraActive]);
 
-     // Update accuracy every 0.5 seconds during training
-     useEffect(() => {
-         if (isTraining) {
-             const interval = setInterval(() => {
-                 if (poseResults && poseResults.poseLandmarks) {
-                     // Update accuracy based on actual pose detection
-                     if (overallAccuracy > 0) {
-                         setAccuracy(overallAccuracy);
-                     } else if (poseResults.poseLandmarks) {
-                         // Show that pose is detected but no reference angles set yet
-                         setAccuracy(85); // Default accuracy when pose is detected
-                     }
-                 } else {
-                     // No pose detected yet
-                     setAccuracy(0);
-                 }
-             }, 500); // Update every 0.5 seconds
+    // Update accuracy immediately when overallAccuracy changes
+    useEffect(() => {
+        if (isTraining && overallAccuracy > 0) {
+            setAccuracy(overallAccuracy);
+        }
+    }, [overallAccuracy, isTraining]);
 
-             return () => clearInterval(interval);
-         }
-     }, [isTraining, poseResults, overallAccuracy]);
+    // Update accuracy every 0.5 seconds during training for fallback
+    useEffect(() => {
+        if (isTraining) {
+            const interval = setInterval(() => {
+                if (poseResults && poseResults.poseLandmarks) {
+                    // Update accuracy based on actual pose detection
+                    if (overallAccuracy > 0) {
+                        setAccuracy(overallAccuracy);
+                    } else if (poseResults.poseLandmarks) {
+                        // Show that pose is detected but no reference angles set yet
+                        setAccuracy(85); // Default accuracy when pose is detected
+                    }
+                } else {
+                    // No pose detected yet
+                    setAccuracy(0);
+                }
+            }, 500); // Update every 0.5 seconds
+
+            return () => clearInterval(interval);
+        }
+    }, [isTraining, poseResults, overallAccuracy]);
 
     const handleStartTraining = async () => {
-        // Set reference angles FIRST before starting camera
-        const guardAngles = poseReferenceAngles.poses.guard.angles;
+        // Set reference angles and weights FIRST before starting camera
+        const guardData = poseReferenceAngles.poses.guard;
+        const guardAngles = guardData.angles;
+        const guardWeights = guardData.weights;
+
         setReferenceAngles(guardAngles);
         referenceAnglesRef.current = guardAngles; // Also set ref for immediate access
+        referenceWeightsRef.current = guardWeights; // Store weights for calculation
+
         console.log("Reference angles set:", guardAngles);
+        console.log("Reference weights set:", guardWeights);
 
         await startCamera();
         setIsTraining(true);
@@ -623,39 +651,21 @@ const Dojo = () => {
                                 </div>
                             )}
 
-                             {/* Real-time Accuracy Badge */}
-                             {isTraining && (
-                                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30">
-                                     <Badge
-                                         variant="outline"
-                                         className={`text-lg px-4 py-2 font-bold ${
-                                             accuracy >= 90
-                                                 ? "bg-green-500 text-white border-green-400"
-                                                 : accuracy >= 70
-                                                 ? "bg-yellow-500 text-black border-yellow-400"
-                                                 : "bg-red-500 text-white border-red-400"
-                                         }`}
-                                     >
-                                         {accuracy.toFixed(1)}% Accuracy
-                                     </Badge>
-                                 </div>
-                             )}
-
-                             {/* Training Overlays */}
-                             {isTraining && (
-                                 <>
-                                     <div className="absolute top-16 left-4 z-30">
-                                         <Badge
-                                             variant="outline"
-                                             className={
-                                                 accuracy >= 90
-                                                     ? "bg-green-500 text-white"
-                                                     : "bg-yellow-500 text-black"
-                                             }
-                                         >
-                                             {accuracy.toFixed(1)}% Accuracy
-                                         </Badge>
-                                     </div>
+                            {/* Training Overlays */}
+                            {isTraining && (
+                                <>
+                                    <div className="absolute top-4 left-4 z-30">
+                                        <Badge
+                                            variant="outline"
+                                            className={`text-lg px-3 py-2 font-bold ${
+                                                accuracy >= 90
+                                                    ? "bg-green-500 text-white"
+                                                    : "bg-yellow-500 text-black"
+                                            }`}
+                                        >
+                                            {accuracy.toFixed(1)}% Accuracy
+                                        </Badge>
+                                    </div>
                                     {holdTimer > 0 && (
                                         <div className="absolute top-4 right-4 z-30">
                                             <Badge
