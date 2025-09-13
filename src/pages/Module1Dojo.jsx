@@ -19,6 +19,7 @@ import { Pose } from "@mediapipe/pose";
 import { Camera as MediaPipeCamera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import poseReferenceAngles from "../data/poseReferenceAngles.json";
+import { generatePoseFeedback } from "../service/geminiService";
 
 const Module1Dojo = () => {
     const { moduleId } = useParams();
@@ -71,6 +72,8 @@ const Module1Dojo = () => {
         rightKnee: 0,
     });
     const [overallAccuracy, setOverallAccuracy] = useState(0);
+    const [aiFeedback, setAiFeedback] = useState("");
+    const [feedbackInterval, setFeedbackInterval] = useState(null);
 
     // Animation frame references
     const videoAnimationRef = useRef(null);
@@ -141,6 +144,16 @@ const Module1Dojo = () => {
     ];
 
     const currentPoseData = poses[currentPose];
+
+    // Mapping of poses to their reference images
+    const poseImages = {
+        0: "/guardRight.jpg", // Guard Position Right Jab
+        1: "/guardLeft.jpg", // Guard Position Left Jab
+        2: "/basicBlockRight.jpg", // Basic Block with Right Hand
+        3: "/basicBlockLeft.jpg", // Basic Block with Left Hand
+        4: "/craneStance.jpg", // Crane Stance
+        5: "/craneKick.jpg", // Crane Kick!
+    };
 
     // Functions for pose timing and localStorage
     const savePoseTime = (poseIndex, timeInSeconds) => {
@@ -623,10 +636,11 @@ const Module1Dojo = () => {
         }
     }, [cameraActive, isMediaPipeLoaded, poseDetector]);
 
-    // Cleanup camera on component unmount or when training stops
+    // Cleanup camera and intervals on component unmount or when training stops
     useEffect(() => {
         return () => {
             stopCamera();
+            stopRealtimeFeedback();
         };
     }, []);
 
@@ -707,6 +721,9 @@ const Module1Dojo = () => {
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
 
+        // Clear previous AI feedback
+        setAiFeedback("");
+
         // Start stopwatch
         setStopwatchTime(0);
         setIsStopwatchRunning(true);
@@ -728,7 +745,11 @@ const Module1Dojo = () => {
 
         await startCamera();
         setIsTraining(true);
-        setFeedback("Position yourself in front of the camera and begin!");
+
+        // Start real-time feedback after a short delay to allow camera to initialize
+        setTimeout(() => {
+            startRealtimeFeedback();
+        }, 2000); // 2 second delay
     };
 
     const handlePauseTraining = () => {
@@ -739,7 +760,58 @@ const Module1Dojo = () => {
         setIsAccuracyTimerActive(false);
         // Pause stopwatch
         setIsStopwatchRunning(false);
-        setFeedback("Training paused. Click resume when ready.");
+        // Stop real-time feedback
+        stopRealtimeFeedback();
+    };
+
+    // Function to generate AI feedback for the current pose
+    const generateAIFeedback = async () => {
+        try {
+            const currentPoseData = poses[currentPose];
+            const currentAngles = jointAngles;
+            const referenceAngles = referenceAnglesRef.current;
+
+            if (currentPoseData && referenceAngles) {
+                const feedback = await generatePoseFeedback(
+                    currentPoseData.name,
+                    currentPoseData.description,
+                    overallAccuracy,
+                    referenceAngles,
+                    currentAngles
+                );
+                setAiFeedback(feedback);
+            }
+        } catch (error) {
+            console.error("Error generating AI feedback:", error);
+            setAiFeedback(
+                "Great effort! Keep practicing to improve your form and technique."
+            );
+        }
+    };
+
+    // Function to start real-time feedback interval
+    const startRealtimeFeedback = () => {
+        // Clear any existing interval
+        if (feedbackInterval) {
+            clearInterval(feedbackInterval);
+        }
+
+        // Start new interval for real-time feedback every 5 seconds
+        const interval = setInterval(() => {
+            if (isTraining && cameraActive && overallAccuracy > 0) {
+                generateAIFeedback();
+            }
+        }, 5000); // 5 seconds
+
+        setFeedbackInterval(interval);
+    };
+
+    // Function to stop real-time feedback interval
+    const stopRealtimeFeedback = () => {
+        if (feedbackInterval) {
+            clearInterval(feedbackInterval);
+            setFeedbackInterval(null);
+        }
     };
 
     // Function to progress to next pose
@@ -764,12 +836,15 @@ const Module1Dojo = () => {
             stopCamera();
             setIsTraining(false);
 
+            // Stop real-time feedback
+            stopRealtimeFeedback();
+
+            // Generate AI feedback for the completed pose
+            generateAIFeedback();
+
             // Move to next pose
             setCurrentPose((prev) => prev + 1);
             setScore((prev) => prev + 5);
-            setFeedback(
-                "Pose completed! Click 'Start Training' to begin the next pose."
-            );
 
             // Set reference angles for the new pose
             const nextPoseIndex = currentPose + 1;
@@ -786,10 +861,18 @@ const Module1Dojo = () => {
             // All poses completed
             setIsTraining(false);
             stopCamera();
+
+            // Stop real-time feedback
+            stopRealtimeFeedback();
+
+            // Generate AI feedback for the final pose
+            generateAIFeedback();
+
             setFeedback("Module completed! Excellent work!");
             // Navigate to results page after a short delay
-
-            navigate("/single-player-results");
+            setTimeout(() => {
+                navigate("/single-player-results");
+            }, 2000);
         }
     };
 
@@ -882,12 +965,6 @@ const Module1Dojo = () => {
                                             </Badge>
                                         </div>
                                     )}
-                                    <div className="absolute bottom-4 left-4 right-4 z-30">
-                                        <div className="text-center text-sm text-white bg-black/50 rounded p-2">
-                                            {feedback ||
-                                                "Position yourself in front of the camera"}
-                                        </div>
-                                    </div>
                                 </>
                             )}
                         </div>
@@ -917,14 +994,42 @@ const Module1Dojo = () => {
 
                         <div className="space-y-3">
                             {!isTraining && !isCompleted && (
-                                <Button
-                                    variant="combat"
-                                    className="w-full"
-                                    onClick={handleStartTraining}
-                                >
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Start Training
-                                </Button>
+                                <div className="space-y-4">
+                                    <Button
+                                        variant="combat"
+                                        className="w-full"
+                                        onClick={handleStartTraining}
+                                    >
+                                        <Play className="w-4 h-4 mr-2" />
+                                        Start Training
+                                    </Button>
+
+                                    {/* Reference Image */}
+                                    <div className="text-center">
+                                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                                            Reference Pose
+                                        </h4>
+                                        <div className="relative inline-block">
+                                            <img
+                                                src={poseImages[currentPose]}
+                                                alt={`${currentPoseData.name} reference`}
+                                                className="w-48 h-64 object-cover rounded-lg border-2 border-primary/20 shadow-lg"
+                                                onError={(e) => {
+                                                    e.target.style.display =
+                                                        "none";
+                                                    e.target.nextSibling.style.display =
+                                                        "block";
+                                                }}
+                                            />
+                                            <div
+                                                className="w-48 h-64 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-sm"
+                                                style={{ display: "none" }}
+                                            >
+                                                Image not found
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                             {isTraining && (
                                 <div className="space-y-2">
@@ -1050,6 +1155,23 @@ const Module1Dojo = () => {
                                         >
                                             Complete
                                         </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* AI Feedback Display */}
+                            {aiFeedback && (
+                                <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <div className="text-2xl">🤖</div>
+                                        <div>
+                                            <div className="font-semibold text-blue-300 mb-2">
+                                                AI Feedback
+                                            </div>
+                                            <div className="text-sm text-blue-100 leading-relaxed">
+                                                {aiFeedback}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}

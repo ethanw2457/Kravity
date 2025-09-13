@@ -392,7 +392,7 @@ const SinglePlayerResults = () => {
                                 {sessionData.poses.length}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                Poses Completed
+                                Poses Attempted
                             </div>
                         </div>
                     </div>
