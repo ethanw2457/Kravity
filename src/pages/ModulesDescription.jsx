@@ -11,7 +11,7 @@ const ModulesDescription = () => {
             id: 1,
             title: "Basic Defense Stances",
             difficulty: "Beginner",
-            poses: 4,
+            poses: 6,
             description:
                 "Master fundamental defensive positions and blocking techniques",
             techniques: [
@@ -32,10 +32,10 @@ const ModulesDescription = () => {
             description:
                 "Learn to transition from defense to offense with fluid combinations",
             techniques: [
-                "Block & Strike",
-                "Elbow Counter",
-                "Knee Defense",
-                "Pivot Strike",
+                "Defensive Block Stance with Left Hand",
+                "Defensive Block Stance with Right Hand",
+                "Knee Defense with Left Hand",
+                "Knee Defense with Right Hand",
             ],
             estimatedTime: "10-15 min",
         },

@@ -11,6 +11,7 @@ import {
     AlertCircle,
     Play,
     Pause,
+    ArrowLeft,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -19,7 +20,7 @@ import { Camera as MediaPipeCamera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import poseReferenceAngles from "../data/poseReferenceAngles.json";
 
-const Dojo = () => {
+const Module2Dojo = () => {
     const { moduleId } = useParams();
     const [currentPose, setCurrentPose] = useState(0);
     const [isTraining, setIsTraining] = useState(false);
@@ -76,7 +77,7 @@ const Dojo = () => {
     const poses = [
         {
             id: 1,
-            name: "Guard Position Right Jab",
+            name: "Defensive Block Stance with Left Hand",
             description:
                 "Maintain a balanced defensive stance with hands raised",
             keyPoints: [
@@ -88,7 +89,7 @@ const Dojo = () => {
         },
         {
             id: 2,
-            name: "Guard Position Left Jab",
+            name: "Defensive Block Stance with Right Hand",
             description:
                 "Lower defensive position ready to block incoming attacks",
             keyPoints: [
@@ -100,7 +101,7 @@ const Dojo = () => {
         },
         {
             id: 3,
-            name: "Basic Block with Right Hand",
+            name: "Knee Defense with Right Hand",
             description: "Execute a fundamental blocking movement",
             keyPoints: [
                 "Forearm parallel to ground",
@@ -111,7 +112,7 @@ const Dojo = () => {
         },
         {
             id: 4,
-            name: "Basic Block with Left Hand",
+            name: "Knee Defense with Left Hand",
             description: "Return to neutral combat-ready stance",
             keyPoints: [
                 "Relaxed but alert",
@@ -139,10 +140,10 @@ const Dojo = () => {
     // Function to get reference angles and weights for current pose
     const getPoseReferenceData = (poseIndex) => {
         switch (poseIndex) {
-            case 0: // First pose - Guard Position Right Jab
-                return poseReferenceAngles.poses.guardRight;
-            case 1: // Second pose - Guard Position Left Jab
-                return poseReferenceAngles.poses.guardLeft;
+            case 0: // First pose - Defensive Block Stance with Left Hand
+                return poseReferenceAngles.poses.defensiveBlockLeft;
+            case 1: // Second pose - Defensive Block Stance with Right Hand
+                return poseReferenceAngles.poses.defensiveBlockRight;
             case 2: // Third pose - Basic Block with Right Hand
                 return poseReferenceAngles.poses.basicBlockRight;
             case 3: // Fourth pose - Basic Block with Left Hand
@@ -726,13 +727,27 @@ const Dojo = () => {
     return (
         <div className="min-h-screen bg-gradient-hero p-6">
             <div className="container mx-auto max-w-6xl">
+                {/* Back Button */}
+                <div className="mb-6">
+                    <Link to="/modules">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Modules
+                        </Button>
+                    </Link>
+                </div>
+
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
                         Training Dojo
                     </h1>
                     <Badge variant="outline" className="text-lg px-4 py-2">
-                        Module {moduleId} - Basic Defense Stances
+                        Module 2 - Counter-Attack Combinations
                     </Badge>
                 </div>
 
@@ -845,68 +860,6 @@ const Dojo = () => {
 
                                     {/* Manual pose progression controls */}
                                     <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1"
-                                            onClick={() => {
-                                                if (
-                                                    currentPose <
-                                                    poses.length - 1
-                                                ) {
-                                                    // Stop and reset timer immediately
-                                                    setAccuracyTimer(0);
-                                                    setIsAccuracyTimerActive(
-                                                        false
-                                                    );
-
-                                                    // Turn off camera and pause training
-                                                    stopCamera();
-                                                    setIsTraining(false);
-
-                                                    // Move to next pose
-                                                    setCurrentPose(
-                                                        (prev) => prev + 1
-                                                    );
-                                                    setScore(
-                                                        (prev) => prev + 5
-                                                    );
-                                                    setFeedback(
-                                                        "Pose completed! Click 'Start Training' to begin the next pose."
-                                                    );
-
-                                                    // Set reference angles for the new pose
-                                                    const nextPoseIndex =
-                                                        currentPose + 1;
-                                                    if (
-                                                        nextPoseIndex <
-                                                        poses.length
-                                                    ) {
-                                                        const poseData =
-                                                            getPoseReferenceData(
-                                                                nextPoseIndex
-                                                            );
-                                                        const poseAngles =
-                                                            poseData.angles;
-                                                        const poseWeights =
-                                                            poseData.weights;
-
-                                                        setReferenceAngles(
-                                                            poseAngles
-                                                        );
-                                                        referenceAnglesRef.current =
-                                                            poseAngles;
-                                                        referenceWeightsRef.current =
-                                                            poseWeights;
-                                                    }
-                                                }
-                                            }}
-                                            disabled={
-                                                currentPose >= poses.length - 1
-                                            }
-                                        >
-                                            Next Pose
-                                        </Button>
                                         {/* Crane Stance Override Button */}
                                         {(currentPose === 4 ||
                                             currentPose === 5) && (
@@ -1087,4 +1040,4 @@ const Dojo = () => {
     );
 };
 
-export default Dojo;
+export default Module2Dojo;

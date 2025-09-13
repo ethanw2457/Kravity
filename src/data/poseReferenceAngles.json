@@ -80,6 +80,46 @@
                 "rightShoulder": 1.0
             }
         },
+        "defensiveBlockLeft": {
+            "name": "Defensive Block Stance with Left Hand",
+            "description": "Defensive block stance with left hand",
+            "angles": {
+                "leftElbow": 20,
+                "rightElbow": 70,
+                "leftKnee": 130,
+                "rightKnee": 140,
+                "leftShoulder": 90,
+                "rightShoulder": 70
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "defensiveBlockRight": {
+            "name": "Defensive Block Stance with Right Hand",
+            "description": "Defensive block stance with right hand",
+            "angles": {
+                "leftElbow": 80,
+                "rightElbow": 30,
+                "leftKnee": 120,
+                "rightKnee": 130,
+                "leftShoulder": 40,
+                "rightShoulder": 70
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
         "crane": {
             "name": "Crane Stance",
             "description": "Crane stance to prepare for an attack",
