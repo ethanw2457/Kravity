@@ -84,12 +84,12 @@
             "name": "Defensive Block Stance with Left Hand",
             "description": "Defensive block stance with left hand",
             "angles": {
-                "leftElbow": 20,
-                "rightElbow": 70,
+                "leftElbow": 70,
+                "rightElbow": 90,
                 "leftKnee": 130,
                 "rightKnee": 140,
-                "leftShoulder": 90,
-                "rightShoulder": 70
+                "leftShoulder": 60,
+                "rightShoulder": 40
             },
             "weights": {
                 "leftElbow": 1.0,
@@ -105,11 +105,51 @@
             "description": "Defensive block stance with right hand",
             "angles": {
                 "leftElbow": 80,
-                "rightElbow": 30,
-                "leftKnee": 120,
+                "rightElbow": 80,
+                "leftKnee": 140,
                 "rightKnee": 130,
                 "leftShoulder": 40,
-                "rightShoulder": 70
+                "rightShoulder": 50
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "kneeDefenseRight": {
+            "name": "Knee Defense with Right Hand",
+            "description": "Knee defense with right hand",
+            "angles": {
+                "leftElbow": 90,
+                "rightElbow": 50,
+                "leftKnee": 120,
+                "rightKnee": 150,
+                "leftShoulder": 40,
+                "rightShoulder": 75
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+        "kneeDefenseLeft": {
+            "name": "Knee Defense with Left Hand",
+            "description": "Knee defense with left hand",
+            "angles": {
+                "leftElbow": 70,
+                "rightElbow": 80,
+                "leftKnee": 150,
+                "rightKnee": 150,
+                "leftShoulder": 50,
+                "rightShoulder": 60
             },
             "weights": {
                 "leftElbow": 1.0,
