@@ -1,0 +1,16 @@
+{
+    "poses": {
+        "guard": {
+            "name": "Guard Position",
+            "description": "Basic defensive stance with hands up and knees slightly bent",
+            "angles": {
+                "leftElbow": 90,
+                "rightElbow": 85,
+                "leftKnee": 165,
+                "rightKnee": 170,
+                "leftShoulder": 50,
+                "rightShoulder": 50
+            }
+        }
+    }
+}
