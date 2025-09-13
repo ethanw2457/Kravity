@@ -11,59 +11,268 @@ import {
     RotateCcw,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 const SinglePlayerResults = () => {
-    // Mock data - would come from actual training session
-    const sessionData = {
-        totalScore: 267,
-        maxScore: 300,
-        totalTime: "8:43",
-        accuracy: 89,
-        poses: [
-            {
-                name: "Guard Position Right Jab",
-                score: 85,
-                maxScore: 100,
-                accuracy: 92,
-                time: "2:15",
-            },
-            {
-                name: "Guard Position Left Jab",
-                score: 78,
-                maxScore: 100,
-                accuracy: 87,
-                time: "2:08",
-            },
-            {
-                name: "Basic Block with Right Hand",
-                score: 67,
-                maxScore: 100,
-                accuracy: 81,
-                time: "2:45",
-            },
-            {
-                name: "Basic Block with Left Hand",
-                score: 37,
-                maxScore: 100,
-                accuracy: 94,
-                time: "1:35",
-            },
-            {
-                name: "Crane Stance",
-                score: 95,
-                maxScore: 100,
-                accuracy: 98,
-                time: "1:25",
-            },
-            {
-                name: "Crane Kick!",
-                score: 0,
-                maxScore: 100,
-                accuracy: 98,
-                time: "1:25",
-            },
-        ],
+    const [sessionData, setSessionData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // Function to stop camera if it's running
+    const stopCamera = () => {
+        try {
+            // Get all video elements that might have camera streams
+            const videoElements = document.querySelectorAll("video");
+            videoElements.forEach((video) => {
+                if (video.srcObject) {
+                    const stream = video.srcObject;
+                    if (stream && stream.getTracks) {
+                        stream.getTracks().forEach((track) => {
+                            track.stop();
+                            console.log("Camera track stopped");
+                        });
+                    }
+                    video.srcObject = null;
+                }
+            });
+
+            // Also try to stop any active media streams
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // This will help ensure any pending camera requests are cancelled
+                console.log("Camera cleanup completed");
+            }
+        } catch (error) {
+            console.error("Error stopping camera:", error);
+        }
     };
+
+    // Stop camera when component mounts and unmounts
+    useEffect(() => {
+        stopCamera();
+
+        // Cleanup function to stop camera when component unmounts
+        return () => {
+            stopCamera();
+        };
+    }, []);
+
+    useEffect(() => {
+        const loadTrainingData = () => {
+            // Add a small delay to ensure localStorage is fully updated
+            setTimeout(() => {
+                try {
+                    // Try to get data from both modules
+                    const module1Data =
+                        localStorage.getItem("module1_pose_times");
+                    const module2Data =
+                        localStorage.getItem("module2_pose_times");
+
+                    console.log("Module1 data:", module1Data);
+                    console.log("Module2 data:", module2Data);
+
+                    let poseTimes = {};
+                    let moduleName = "Training Session";
+                    let poses = [];
+
+                    if (module1Data) {
+                        poseTimes = JSON.parse(module1Data);
+                        moduleName = "Module 1 - Basic Defense Stances";
+                        poses = [
+                            "Guard Position Right Jab",
+                            "Guard Position Left Jab",
+                            "Basic Block with Right Hand",
+                            "Basic Block with Left Hand",
+                            "Crane Stance",
+                            "Crane Kick!",
+                        ];
+                    } else if (module2Data) {
+                        poseTimes = JSON.parse(module2Data);
+                        moduleName = "Module 2 - Counter-Attack Combinations";
+                        poses = [
+                            "Defensive Block Stance with Left Hand",
+                            "Defensive Block Stance with Right Hand",
+                            "Knee Defense with Left Hand",
+                            "Knee Defense with Right Hand",
+                            "Crane Stance",
+                            "Crane Kick!",
+                        ];
+                    }
+
+                    // Calculate session statistics
+                    const completedPoses = Object.values(poseTimes).filter(
+                        (time) => time !== null
+                    );
+                    const totalTime = completedPoses.reduce(
+                        (sum, time) => sum + time,
+                        0
+                    );
+                    const averageTime =
+                        completedPoses.length > 0
+                            ? totalTime / completedPoses.length
+                            : 0;
+
+                    // Generate pose data with actual times
+                    const poseData = poses.map((poseName, index) => {
+                        const poseKey = `pose${index + 1}`;
+                        const time = poseTimes[poseKey];
+                        const timeInSeconds = time || 0;
+                        const timeFormatted =
+                            timeInSeconds > 0
+                                ? `${Math.floor(timeInSeconds / 60)}:${(
+                                      timeInSeconds % 60
+                                  )
+                                      .toFixed(0)
+                                      .padStart(2, "0")}`
+                                : "Skipped";
+
+                        // Calculate score based on time (faster = higher score)
+                        const maxTime = 180; // 3 minutes max
+                        const score =
+                            timeInSeconds > 0
+                                ? Math.max(
+                                      0,
+                                      Math.round(
+                                          100 - (timeInSeconds / maxTime) * 100
+                                      )
+                                  )
+                                : 0;
+
+                        // Calculate accuracy (mock for now, could be enhanced with actual accuracy data)
+                        const accuracy =
+                            timeInSeconds > 0
+                                ? Math.min(
+                                      100,
+                                      Math.max(
+                                          60,
+                                          100 - (timeInSeconds - 30) * 0.5
+                                      )
+                                  )
+                                : 0;
+
+                        return {
+                            name: poseName,
+                            score: score,
+                            maxScore: 100,
+                            accuracy: Math.round(accuracy),
+                            time: timeFormatted,
+                            completed: timeInSeconds > 0,
+                        };
+                    });
+
+                    const totalScore = poseData.reduce(
+                        (sum, pose) => sum + pose.score,
+                        0
+                    );
+                    const maxScore = poses.length * 100;
+                    const averageAccuracy =
+                        poseData.length > 0
+                            ? Math.round(
+                                  poseData.reduce(
+                                      (sum, pose) => sum + pose.accuracy,
+                                      0
+                                  ) / poseData.length
+                              )
+                            : 0;
+
+                    const totalTimeFormatted =
+                        totalTime > 0
+                            ? `${Math.floor(totalTime / 60)}:${(totalTime % 60)
+                                  .toFixed(0)
+                                  .padStart(2, "0")}`
+                            : "0:00";
+
+                    setSessionData({
+                        totalScore,
+                        maxScore,
+                        totalTime: totalTimeFormatted,
+                        accuracy: averageAccuracy,
+                        poses: poseData,
+                        moduleName,
+                    });
+                } catch (error) {
+                    console.error("Error loading training data:", error);
+                    // Fallback to mock data if there's an error
+                    setSessionData({
+                        totalScore: 267,
+                        maxScore: 300,
+                        totalTime: "8:43",
+                        accuracy: 89,
+                        poses: [
+                            {
+                                name: "Guard Position Right Jab",
+                                score: 85,
+                                maxScore: 100,
+                                accuracy: 92,
+                                time: "2:15",
+                                completed: true,
+                            },
+                            {
+                                name: "Guard Position Left Jab",
+                                score: 78,
+                                maxScore: 100,
+                                accuracy: 87,
+                                time: "2:08",
+                                completed: true,
+                            },
+                            {
+                                name: "Basic Block with Right Hand",
+                                score: 67,
+                                maxScore: 100,
+                                accuracy: 81,
+                                time: "2:45",
+                                completed: true,
+                            },
+                            {
+                                name: "Basic Block with Left Hand",
+                                score: 37,
+                                maxScore: 100,
+                                accuracy: 94,
+                                time: "1:35",
+                                completed: true,
+                            },
+                            {
+                                name: "Crane Stance",
+                                score: 95,
+                                maxScore: 100,
+                                accuracy: 98,
+                                time: "1:25",
+                                completed: true,
+                            },
+                            {
+                                name: "Crane Kick!",
+                                score: 0,
+                                maxScore: 100,
+                                accuracy: 98,
+                                time: "1:25",
+                                completed: false,
+                            },
+                        ],
+                        moduleName: "Training Session",
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            }, 100); // Small delay to ensure localStorage is updated
+        };
+
+        loadTrainingData();
+    }, []);
+
+    // Show loading state while data is being loaded
+    if (loading || !sessionData) {
+        return (
+            <div className="min-h-screen bg-gradient-hero p-6 flex items-center justify-center">
+                <div className="text-center">
+                    <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
+                    <h1 className="text-2xl font-bold mb-4 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                        Loading Results...
+                    </h1>
+                    <p className="text-lg text-muted-foreground">
+                        Analyzing your training session
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const percentage = Math.round(
         (sessionData.totalScore / sessionData.maxScore) * 100
@@ -117,6 +326,9 @@ const SinglePlayerResults = () => {
                     <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
                         Training Complete
                     </h1>
+                    <Badge variant="outline" className="text-lg px-4 py-2 mb-4">
+                        {sessionData.moduleName}
+                    </Badge>
                     <p className="text-lg text-muted-foreground">
                         Your performance analysis is ready
                     </p>
@@ -186,22 +398,37 @@ const SinglePlayerResults = () => {
                     <div className="space-y-4">
                         {sessionData.poses.map((pose, index) => {
                             const poseRating = getPoseRating(pose.accuracy);
+                            const isSkipped = !pose.completed;
+
                             return (
                                 <div
                                     key={index}
-                                    className="border border-border rounded-lg p-4"
+                                    className={`border border-border rounded-lg p-4 ${
+                                        isSkipped
+                                            ? "opacity-60 bg-muted/20"
+                                            : ""
+                                    }`}
                                 >
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
                                             <h4 className="font-semibold">
                                                 {pose.name}
                                             </h4>
-                                            <Badge
-                                                variant="outline"
-                                                className={poseRating.color}
-                                            >
-                                                {poseRating.rating}
-                                            </Badge>
+                                            {isSkipped ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-orange-500 border-orange-500"
+                                                >
+                                                    Skipped
+                                                </Badge>
+                                            ) : (
+                                                <Badge
+                                                    variant="outline"
+                                                    className={poseRating.color}
+                                                >
+                                                    {poseRating.rating}
+                                                </Badge>
+                                            )}
                                         </div>
                                         <div className="text-right">
                                             <div className="text-lg font-bold">
@@ -213,29 +440,33 @@ const SinglePlayerResults = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <div className="text-muted-foreground">
-                                                Accuracy
+                                    {!isSkipped && (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <div className="text-muted-foreground">
+                                                        Accuracy
+                                                    </div>
+                                                    <div className="font-semibold">
+                                                        {pose.accuracy}%
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-muted-foreground">
+                                                        Completion Time
+                                                    </div>
+                                                    <div className="font-semibold">
+                                                        {pose.time}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="font-semibold">
-                                                {pose.accuracy}%
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-muted-foreground">
-                                                Completion Time
-                                            </div>
-                                            <div className="font-semibold">
-                                                {pose.time}
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <Progress
-                                        value={pose.score}
-                                        className="mt-3"
-                                    />
+                                            <Progress
+                                                value={pose.score}
+                                                className="mt-3"
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             );
                         })}

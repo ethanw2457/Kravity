@@ -13,7 +13,7 @@ import {
     Pause,
     ArrowLeft,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Pose } from "@mediapipe/pose";
 import { Camera as MediaPipeCamera } from "@mediapipe/camera_utils";
@@ -22,6 +22,7 @@ import poseReferenceAngles from "../data/poseReferenceAngles.json";
 
 const Module2Dojo = () => {
     const { moduleId } = useParams();
+    const navigate = useNavigate();
     const [currentPose, setCurrentPose] = useState(0);
     const [isTraining, setIsTraining] = useState(false);
     const [accuracy, setAccuracy] = useState(0);
@@ -786,6 +787,8 @@ const Module2Dojo = () => {
             setIsTraining(false);
             stopCamera();
             setFeedback("Module completed! Excellent work!");
+            // Navigate to results page after a short delay
+            navigate("/single-player-results");
         }
     };
 
@@ -935,9 +938,8 @@ const Module2Dojo = () => {
 
                                     {/* Manual pose progression controls */}
                                     <div className="flex gap-2">
-                                        {/* Crane Stance Override Button */}
-                                        {(currentPose === 4 ||
-                                            currentPose === 5) && (
+                                        {/* Skip Pose Button */}
+                                        {currentPose < poses.length && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -949,31 +951,71 @@ const Module2Dojo = () => {
                                                         false
                                                     );
 
+                                                    // Reset stopwatch
+                                                    setStopwatchTime(0);
+                                                    setIsStopwatchRunning(
+                                                        false
+                                                    );
+
+                                                    // Set current pose time as null (skipped)
+                                                    const poseKey = `pose${
+                                                        currentPose + 1
+                                                    }`;
+                                                    const newPoseTimes = {
+                                                        ...poseTimes,
+                                                        [poseKey]: null,
+                                                    };
+                                                    setPoseTimes(newPoseTimes);
+                                                    localStorage.setItem(
+                                                        "module2_pose_times",
+                                                        JSON.stringify(
+                                                            newPoseTimes
+                                                        )
+                                                    );
+                                                    console.log(
+                                                        `Pose ${
+                                                            currentPose + 1
+                                                        } skipped (time set to null)`
+                                                    );
+
                                                     // Turn off camera and pause training
                                                     stopCamera();
                                                     setIsTraining(false);
 
                                                     // Move to next pose
-                                                    setCurrentPose(
-                                                        (prev) => prev + 1
-                                                    );
+                                                    const nextPose =
+                                                        currentPose + 1;
+                                                    setCurrentPose(nextPose);
                                                     setScore(
                                                         (prev) => prev + 5
                                                     );
-                                                    setFeedback(
-                                                        "Crane stance skipped! Click 'Start Training' to begin the next pose."
-                                                    );
+
+                                                    // Check if this was the last pose
+                                                    if (
+                                                        nextPose >= poses.length
+                                                    ) {
+                                                        setFeedback(
+                                                            "Module completed! Excellent work!"
+                                                        );
+                                                        // Navigate to results page after a short delay
+                                                        setTimeout(() => {
+                                                            navigate(
+                                                                "/single-player-results"
+                                                            );
+                                                        }, 2000);
+                                                    } else {
+                                                        setFeedback(
+                                                            "Pose skipped! Click 'Start Training' to begin the next pose."
+                                                        );
+                                                    }
 
                                                     // Set reference angles for the new pose
-                                                    const nextPoseIndex =
-                                                        currentPose + 1;
                                                     if (
-                                                        nextPoseIndex <
-                                                        poses.length
+                                                        nextPose < poses.length
                                                     ) {
                                                         const poseData =
                                                             getPoseReferenceData(
-                                                                nextPoseIndex
+                                                                nextPose
                                                             );
                                                         const poseAngles =
                                                             poseData.angles;
@@ -1010,96 +1052,92 @@ const Module2Dojo = () => {
                                     </div>
                                 </div>
                             )}
-                            {isCompleted && (
-                                <Link to="/single-player-results">
-                                    <Button variant="hero" className="w-full">
-                                        View Results
-                                        <Zap className="w-4 h-4 ml-2" />
-                                    </Button>
-                                </Link>
-                            )}
                         </div>
                     </Card>
 
                     {/* Pose Instructions */}
-                    <div className="space-y-6">
-                        <Card className="p-6 bg-card/80 backdrop-blur-sm border-border">
-                            <h3 className="text-2xl font-bold mb-4">
-                                {currentPoseData.name}
-                            </h3>
-                            <p className="text-muted-foreground mb-6">
-                                {currentPoseData.description}
-                            </p>
+                    {currentPoseData && (
+                        <div className="space-y-6">
+                            <Card className="p-6 bg-card/80 backdrop-blur-sm border-border">
+                                <h3 className="text-2xl font-bold mb-4">
+                                    {currentPoseData.name}
+                                </h3>
+                                <p className="text-muted-foreground mb-6">
+                                    {currentPoseData.description}
+                                </p>
 
-                            <div className="space-y-3">
-                                <h4 className="font-semibold">Key Points:</h4>
-                                {currentPoseData.keyPoints.map(
-                                    (point, index) => (
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold">
+                                        Key Points:
+                                    </h4>
+                                    {currentPoseData.keyPoints.map(
+                                        (point, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <div className="w-2 h-2 bg-primary rounded-full" />
+                                                <span className="text-sm">
+                                                    {point}
+                                                </span>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            </Card>
+
+                            {/* Progress Tracking */}
+                            <Card className="p-6 bg-card/80 backdrop-blur-sm border-border">
+                                <h4 className="font-semibold mb-4">
+                                    Training Progress
+                                </h4>
+                                <div className="space-y-4">
+                                    {poses.map((pose, index) => (
                                         <div
-                                            key={index}
-                                            className="flex items-center gap-2"
+                                            key={pose.id}
+                                            className="flex items-center gap-3"
                                         >
-                                            <div className="w-2 h-2 bg-primary rounded-full" />
-                                            <span className="text-sm">
-                                                {point}
+                                            <div
+                                                className={`w-3 h-3 rounded-full ${
+                                                    index < currentPose
+                                                        ? "bg-green-500"
+                                                        : index === currentPose
+                                                        ? "bg-primary"
+                                                        : "bg-muted"
+                                                }`}
+                                            />
+                                            <span
+                                                className={`text-sm ${
+                                                    index === currentPose
+                                                        ? "font-semibold text-primary"
+                                                        : index < currentPose
+                                                        ? "text-green-400"
+                                                        : "text-muted-foreground"
+                                                }`}
+                                            >
+                                                {pose.name}
                                             </span>
                                         </div>
-                                    )
-                                )}
-                            </div>
-                        </Card>
+                                    ))}
+                                </div>
+                                <Progress
+                                    value={(currentPose / poses.length) * 100}
+                                    className="mt-4"
+                                />
+                            </Card>
 
-                        {/* Progress Tracking */}
-                        <Card className="p-6 bg-card/80 backdrop-blur-sm border-border">
-                            <h4 className="font-semibold mb-4">
-                                Training Progress
-                            </h4>
-                            <div className="space-y-4">
-                                {poses.map((pose, index) => (
-                                    <div
-                                        key={pose.id}
-                                        className="flex items-center gap-3"
-                                    >
-                                        <div
-                                            className={`w-3 h-3 rounded-full ${
-                                                index < currentPose
-                                                    ? "bg-green-500"
-                                                    : index === currentPose
-                                                    ? "bg-primary"
-                                                    : "bg-muted"
-                                            }`}
-                                        />
-                                        <span
-                                            className={`text-sm ${
-                                                index === currentPose
-                                                    ? "font-semibold text-primary"
-                                                    : index < currentPose
-                                                    ? "text-green-400"
-                                                    : "text-muted-foreground"
-                                            }`}
-                                        >
-                                            {pose.name}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                            <Progress
-                                value={(currentPose / poses.length) * 100}
-                                className="mt-4"
-                            />
-                        </Card>
-
-                        {/* Training Tips */}
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>Pro Tip:</strong> Maintain 90% accuracy
-                                for 2 seconds to automatically progress to the
-                                next pose. Focus on form over speed for better
-                                results.
-                            </AlertDescription>
-                        </Alert>
-                    </div>
+                            {/* Training Tips */}
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    <strong>Pro Tip:</strong> Maintain 90%
+                                    accuracy for 2 seconds to automatically
+                                    progress to the next pose. Focus on form
+                                    over speed for better results.
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    )}
                 </div>
 
                 {/* Navigation */}
