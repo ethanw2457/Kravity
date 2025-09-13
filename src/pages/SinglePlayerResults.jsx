@@ -126,7 +126,7 @@ const SinglePlayerResults = () => {
 
                         // Calculate score based on time (faster = higher score)
                         const maxTime = 180; // 3 minutes max
-                        const score =
+                        const baseScore =
                             timeInSeconds > 0
                                 ? Math.max(
                                       0,
@@ -148,10 +148,17 @@ const SinglePlayerResults = () => {
                                   )
                                 : 0;
 
+                        // Determine max score based on pose position (last two poses get lower weight)
+                        const isLastTwoPoses = index >= poses.length - 2;
+                        const maxScore = isLastTwoPoses ? 50 : 100; // Last two poses worth 50 points instead of 100
+                        const finalScore = isLastTwoPoses
+                            ? Math.round(baseScore * 0.5)
+                            : baseScore;
+
                         return {
                             name: poseName,
-                            score: score,
-                            maxScore: 100,
+                            score: finalScore,
+                            maxScore: maxScore,
                             accuracy: Math.round(accuracy),
                             time: timeFormatted,
                             completed: timeInSeconds > 0,
@@ -162,7 +169,10 @@ const SinglePlayerResults = () => {
                         (sum, pose) => sum + pose.score,
                         0
                     );
-                    const maxScore = poses.length * 100;
+                    const maxScore = poseData.reduce(
+                        (sum, pose) => sum + pose.maxScore,
+                        0
+                    );
                     const averageAccuracy =
                         poseData.length > 0
                             ? Math.round(
@@ -193,7 +203,7 @@ const SinglePlayerResults = () => {
                     // Fallback to mock data if there's an error
                     setSessionData({
                         totalScore: 267,
-                        maxScore: 300,
+                        maxScore: 400, // 4 poses * 100 + 2 poses * 50 = 500, but using 400 for demo
                         totalTime: "8:43",
                         accuracy: 89,
                         poses: [
@@ -231,8 +241,8 @@ const SinglePlayerResults = () => {
                             },
                             {
                                 name: "Crane Stance",
-                                score: 95,
-                                maxScore: 100,
+                                score: 48, // 95 * 0.5 = 47.5, rounded to 48
+                                maxScore: 50, // Last two poses worth 50 points
                                 accuracy: 98,
                                 time: "1:25",
                                 completed: true,
@@ -240,7 +250,7 @@ const SinglePlayerResults = () => {
                             {
                                 name: "Crane Kick!",
                                 score: 0,
-                                maxScore: 100,
+                                maxScore: 50, // Last two poses worth 50 points
                                 accuracy: 98,
                                 time: "1:25",
                                 completed: false,
@@ -353,7 +363,7 @@ const SinglePlayerResults = () => {
                             className="w-full max-w-md mx-auto mb-4"
                         />
                         <div className="text-2xl font-bold text-primary">
-                            {percentage}%
+                            {sessionData.accuracy}%
                         </div>
                     </div>
 
@@ -370,7 +380,7 @@ const SinglePlayerResults = () => {
                         <div className="text-center">
                             <Target className="w-8 h-8 text-primary mx-auto mb-2" />
                             <div className="text-2xl font-bold">
-                                {sessionData.accuracy}%
+                                {percentage}%
                             </div>
                             <div className="text-sm text-muted-foreground">
                                 Average Accuracy
@@ -448,7 +458,7 @@ const SinglePlayerResults = () => {
                                                         Accuracy
                                                     </div>
                                                     <div className="font-semibold">
-                                                        {pose.accuracy}%
+                                                        {pose.score}%
                                                     </div>
                                                 </div>
                                                 <div>
