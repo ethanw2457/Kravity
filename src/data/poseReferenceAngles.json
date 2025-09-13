@@ -120,6 +120,29 @@
                 "rightShoulder": 1.0
             }
         },
+<<<<<<< HEAD
+        "kneeDefenseLeft": {
+            "name": "Knee Defense with Left Hand",
+            "description": "Knee defense with left hand",
+            "angles": {
+                "leftElbow": 70,
+                "rightElbow": 80,
+                "leftKnee": 150,
+                "rightKnee": 150,
+                "leftShoulder": 50,
+                "rightShoulder": 60
+            },
+            "weights": {
+                "leftElbow": 1.0,
+                "rightElbow": 1.0,
+                "leftKnee": 0.5,
+                "rightKnee": 0.5,
+                "leftShoulder": 1.0,
+                "rightShoulder": 1.0
+            }
+        },
+=======
+>>>>>>> 079889d8a58854b6d4183f3101911d15ac9dacac
         "kneeDefenseRight": {
             "name": "Knee Defense with Right Hand",
             "description": "Knee defense with right hand",
@@ -130,6 +153,8 @@
                 "rightKnee": 150,
                 "leftShoulder": 40,
                 "rightShoulder": 75
+<<<<<<< HEAD
+=======
             },
             "weights": {
                 "leftElbow": 1.0,
@@ -150,6 +175,7 @@
                 "rightKnee": 150,
                 "leftShoulder": 50,
                 "rightShoulder": 60
+>>>>>>> 079889d8a58854b6d4183f3101911d15ac9dacac
             },
             "weights": {
                 "leftElbow": 1.0,
