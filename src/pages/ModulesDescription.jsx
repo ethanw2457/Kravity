@@ -4,8 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Target, Clock, Trophy, Zap, Shield, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 
 const ModulesDescription = () => {
+    // Clear pose timing data when navigating to modules page
+    useEffect(() => {
+        localStorage.removeItem("module1_pose_times");
+        localStorage.removeItem("module2_pose_times");
+        console.log("Cleared pose timing data from localStorage");
+    }, []);
+
     const modules = [
         {
             id: 1,

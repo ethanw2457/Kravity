@@ -32,6 +32,10 @@ const Module1Dojo = () => {
     const [cameraError, setCameraError] = useState("");
     const [accuracyTimer, setAccuracyTimer] = useState(0);
     const [isAccuracyTimerActive, setIsAccuracyTimerActive] = useState(false);
+    const [poseStartTime, setPoseStartTime] = useState(null);
+    const [poseTimes, setPoseTimes] = useState({});
+    const [stopwatchTime, setStopwatchTime] = useState(0);
+    const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const canvasRef = useRef(null);
@@ -137,6 +141,31 @@ const Module1Dojo = () => {
 
     const currentPoseData = poses[currentPose];
 
+    // Functions for pose timing and localStorage
+    const savePoseTime = (poseIndex, timeInSeconds) => {
+        const poseKey = `pose${poseIndex + 1}`;
+        const newPoseTimes = { ...poseTimes, [poseKey]: timeInSeconds };
+        setPoseTimes(newPoseTimes);
+        localStorage.setItem(
+            "module1_pose_times",
+            JSON.stringify(newPoseTimes)
+        );
+        console.log(
+            `Pose ${poseIndex + 1} completed in ${timeInSeconds.toFixed(
+                2
+            )} seconds`
+        );
+    };
+
+    const loadPoseTimes = () => {
+        const saved = localStorage.getItem("module1_pose_times");
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            setPoseTimes(parsed);
+            console.log("Loaded pose times:", parsed);
+        }
+    };
+
     // Function to get reference angles and weights for current pose
     const getPoseReferenceData = (poseIndex) => {
         switch (poseIndex) {
@@ -157,6 +186,24 @@ const Module1Dojo = () => {
                 return poseReferenceAngles.poses.guardRight;
         }
     };
+
+    // Load pose times from localStorage on component mount
+    useEffect(() => {
+        loadPoseTimes();
+    }, []);
+
+    // Stopwatch timer effect
+    useEffect(() => {
+        let interval = null;
+        if (isStopwatchRunning) {
+            interval = setInterval(() => {
+                setStopwatchTime((time) => time + 0.1);
+            }, 100);
+        } else if (!isStopwatchRunning && stopwatchTime !== 0) {
+            clearInterval(interval);
+        }
+        return () => clearInterval(interval);
+    }, [isStopwatchRunning, stopwatchTime]);
 
     // MediaPipe initialization
     useEffect(() => {
@@ -659,6 +706,13 @@ const Module1Dojo = () => {
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
 
+        // Start stopwatch
+        setStopwatchTime(0);
+        setIsStopwatchRunning(true);
+
+        // Start timing for this pose
+        setPoseStartTime(Date.now());
+
         // Set reference angles and weights FIRST before starting camera
         const poseData = getPoseReferenceData(currentPose);
         const poseAngles = poseData.angles;
@@ -682,6 +736,8 @@ const Module1Dojo = () => {
         // Stop and reset timer when pausing
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
+        // Pause stopwatch
+        setIsStopwatchRunning(false);
         setFeedback("Training paused. Click resume when ready.");
     };
 
@@ -690,6 +746,17 @@ const Module1Dojo = () => {
         // Stop and reset timer immediately
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
+
+        // Reset stopwatch
+        setStopwatchTime(0);
+        setIsStopwatchRunning(false);
+
+        // Save pose completion time
+        if (poseStartTime) {
+            const completionTime = (Date.now() - poseStartTime) / 1000; // Convert to seconds
+            savePoseTime(currentPose, completionTime);
+            setPoseStartTime(null);
+        }
 
         if (currentPose < poses.length - 1) {
             // Turn off camera and pause training
@@ -834,6 +901,14 @@ const Module1Dojo = () => {
                                     Pose {currentPose + 1}/{poses.length}
                                 </span>
                             </div>
+                            {isTraining && (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-sm font-mono">
+                                        {stopwatchTime.toFixed(1)}s
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-3">
