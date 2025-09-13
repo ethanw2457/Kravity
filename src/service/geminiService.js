@@ -1,7 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini AI client with the API key from environment variables
-const apiKey = import.meta.env.VITE_APP_GEMINI_API_KEY;
+const apiKey = "AIzaSyAXWk9QDf1NzjfQ4oZvxNCwSlhfl1BGg28";
+console.log("API Key loaded:", apiKey ? "✅ Present" : "❌ Missing");
 
 if (!apiKey) {
     console.error(
@@ -27,6 +28,14 @@ export async function generatePoseFeedback(
     referenceAngles,
     currentAngles
 ) {
+    console.log("🤖 generatePoseFeedback called with:", {
+        poseName,
+        poseDescription,
+        accuracy,
+        referenceAngles,
+        currentAngles,
+    });
+
     try {
         if (!apiKey) {
             throw new Error(
@@ -43,18 +52,30 @@ export async function generatePoseFeedback(
         Reference Angles: ${JSON.stringify(referenceAngles)}
         Current Angles: ${JSON.stringify(currentAngles)}
         
-        Provide encouraging, constructive feedback in 1-2 sentences based off the information provided above so the user can improve their form and technique for the pose. Focus on:
+        Provide constructive feedback in MAXIMUM 1 quick sentence/phrase based off the information provided above so the user can improve their form and technique for the pose. 
+        Focus on:
         - Areas for improvement for the pose
-        - Motivation to keep practicing
+        - How they should specifically adjust their body
+        - Tips and tricks for added accuracy
+        
+        Examples:
+        - "Your left elbow is too high, try bringing it down"
+        - "Your right knee is too low, try lifting it up"
+        - "Your left arm is a bit low, raising it a bit more will help"
         
         Keep the tone positive and supportive. In order for the user to pass the pose, they need to have at least 90% overall accuracy. 
         The way accuracy is calculated is based on the difference between the reference angles and the current angles (with a 10 degree tolerance). The difference is then multiplied by the weight of the joint. The overall accuracy is the sum of the weighted accuracies divided by the sum of the weights.
         `;
 
+        console.log("🚀 Sending request to Gemini API...");
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
         });
+
+        console.log("✅ Gemini API response:", response);
+        console.log("📝 Response text:", response.text);
+
         return response.text;
     } catch (error) {
         console.error("Error generating feedback:", error);

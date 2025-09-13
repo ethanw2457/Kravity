@@ -7,11 +7,37 @@ import { Link } from "react-router-dom";
 import { useEffect } from "react";
 
 const ModulesDescription = () => {
-    // Clear pose timing data when navigating to modules page
+    // Function to stop all active camera streams
+    const stopAllCameras = () => {
+        // Get all video elements on the page
+        const videoElements = document.querySelectorAll("video");
+
+        videoElements.forEach((video) => {
+            if (video.srcObject) {
+                const stream = video.srcObject;
+                if (stream && stream.getTracks) {
+                    // Stop all tracks in the stream
+                    stream.getTracks().forEach((track) => {
+                        track.stop();
+                        console.log("Stopped camera track:", track.kind);
+                    });
+                }
+                // Clear the video source
+                video.srcObject = null;
+            }
+        });
+
+        console.log("All camera streams stopped");
+    };
+
+    // Clear pose timing data and stop cameras when navigating to modules page
     useEffect(() => {
         localStorage.removeItem("module1_pose_times");
         localStorage.removeItem("module2_pose_times");
         console.log("Cleared pose timing data from localStorage");
+
+        // Stop any active camera streams
+        stopAllCameras();
     }, []);
 
     const modules = [

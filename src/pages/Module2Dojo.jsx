@@ -19,6 +19,7 @@ import { Pose } from "@mediapipe/pose";
 import { Camera as MediaPipeCamera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import poseReferenceAngles from "../data/poseReferenceAngles.json";
+import { generatePoseFeedback } from "../service/geminiService";
 
 const Module2Dojo = () => {
     const { moduleId } = useParams();
@@ -37,6 +38,8 @@ const Module2Dojo = () => {
     const [poseTimes, setPoseTimes] = useState({});
     const [stopwatchTime, setStopwatchTime] = useState(0);
     const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
+    const [aiFeedback, setAiFeedback] = useState("");
+    const [feedbackInterval, setFeedbackInterval] = useState(null);
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const canvasRef = useRef(null);
@@ -141,6 +144,15 @@ const Module2Dojo = () => {
     ];
 
     const currentPoseData = poses[currentPose];
+
+    const poseImages = {
+        0: "/defensiveBlockLeft.jpg", // Guard Position Right Jab
+        1: "/defensiveBlockRight.jpg", // Guard Position Left Jab
+        2: "/kneeDefenseLeft.jpg", // Basic Block with Right Hand
+        3: "/kneeDefenseRight.jpg", // Basic Block with Left Hand
+        4: "/craneStance.jpg", // Crane Stance
+        5: "/craneKick.jpg", // Crane Kick!
+    };
 
     // Functions for pose timing and localStorage
     const savePoseTime = (poseIndex, timeInSeconds) => {
@@ -623,10 +635,11 @@ const Module2Dojo = () => {
         }
     }, [cameraActive, isMediaPipeLoaded, poseDetector]);
 
-    // Cleanup camera on component unmount or when training stops
+    // Cleanup camera and intervals on component unmount
     useEffect(() => {
         return () => {
             stopCamera();
+            stopRealtimeFeedback();
         };
     }, []);
 
@@ -707,6 +720,9 @@ const Module2Dojo = () => {
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
 
+        // Clear previous AI feedback
+        setAiFeedback("");
+
         // Start stopwatch
         setStopwatchTime(0);
         setIsStopwatchRunning(true);
@@ -726,9 +742,19 @@ const Module2Dojo = () => {
         console.log("Reference angles set:", poseAngles);
         console.log("Reference weights set:", poseWeights);
 
+        console.log("🎥 Starting camera...");
+        setIsTraining(true); // Set training to true BEFORE starting camera
+        console.log("🎥 Training state set to true");
         await startCamera();
-        setIsTraining(true);
-        setFeedback("Position yourself in front of the camera and begin!");
+        console.log("🎥 Camera started, cameraActive should be true now");
+
+        // Start real-time feedback after a short delay to allow camera to initialize
+        setTimeout(() => {
+            startRealtimeFeedback();
+            // Also generate immediate feedback for the first pose
+            console.log("🎯 Generating immediate feedback for first pose");
+            generateAIFeedback();
+        }, 2000); // 2 second delay
     };
 
     const handlePauseTraining = () => {
@@ -739,7 +765,78 @@ const Module2Dojo = () => {
         setIsAccuracyTimerActive(false);
         // Pause stopwatch
         setIsStopwatchRunning(false);
+        // Stop real-time feedback
+        stopRealtimeFeedback();
         setFeedback("Training paused. Click resume when ready.");
+    };
+
+    // Function to generate AI feedback for the current pose
+    const generateAIFeedback = async () => {
+        console.log("🎯 generateAIFeedback called");
+        try {
+            const currentPoseData = poses[currentPose];
+            const currentAngles = jointAngles;
+            const referenceAngles = referenceAnglesRef.current;
+
+            console.log("📊 Feedback data:", {
+                currentPoseData,
+                currentAngles,
+                referenceAngles,
+                overallAccuracy,
+            });
+
+            if (currentPoseData && referenceAngles) {
+                console.log("✅ Calling generatePoseFeedback...");
+                const feedback = await generatePoseFeedback(
+                    currentPoseData.name,
+                    currentPoseData.description,
+                    overallAccuracy,
+                    referenceAngles,
+                    currentAngles
+                );
+                console.log("📝 Received feedback:", feedback);
+                setAiFeedback(feedback);
+            } else {
+                console.log("❌ Missing data for feedback generation");
+            }
+        } catch (error) {
+            console.error("❌ Error generating AI feedback:", error);
+            setAiFeedback(
+                "Great effort! Keep practicing to improve your form and technique."
+            );
+        }
+    };
+
+    // Function to start real-time feedback interval
+    const startRealtimeFeedback = () => {
+        console.log("🔄 Starting real-time feedback");
+        // Clear any existing interval
+        if (feedbackInterval) {
+            clearInterval(feedbackInterval);
+        }
+
+        // Start new interval for real-time feedback every 5 seconds
+        const interval = setInterval(() => {
+            console.log("⏰ Real-time feedback interval triggered", {
+                overallAccuracy,
+            });
+            if (overallAccuracy > 0) {
+                console.log("🔄 Generating real-time feedback...");
+                generateAIFeedback();
+            } else {
+                console.log("⏸️ Skipping feedback - no pose detection");
+            }
+        }, 5000); // 5 seconds
+
+        setFeedbackInterval(interval);
+    };
+
+    // Function to stop real-time feedback interval
+    const stopRealtimeFeedback = () => {
+        if (feedbackInterval) {
+            clearInterval(feedbackInterval);
+            setFeedbackInterval(null);
+        }
     };
 
     // Function to progress to next pose
@@ -760,9 +857,18 @@ const Module2Dojo = () => {
         }
 
         if (currentPose < poses.length - 1) {
+            // Generate AI feedback for the completed pose BEFORE stopping camera
+            console.log(
+                "🎯 Generating feedback for completed pose before progression"
+            );
+            generateAIFeedback();
+
             // Turn off camera and pause training
             stopCamera();
             setIsTraining(false);
+
+            // Stop real-time feedback
+            stopRealtimeFeedback();
 
             // Move to next pose
             setCurrentPose((prev) => prev + 1);
@@ -784,8 +890,18 @@ const Module2Dojo = () => {
             }
         } else {
             // All poses completed
+            // Generate AI feedback for the final pose BEFORE stopping camera
+            console.log(
+                "🎯 Generating feedback for final pose before completion"
+            );
+            generateAIFeedback();
+
             setIsTraining(false);
             stopCamera();
+
+            // Stop real-time feedback
+            stopRealtimeFeedback();
+
             setFeedback("Module completed! Excellent work!");
             // Navigate to results page after a short delay
             navigate("/single-player-results");
@@ -881,12 +997,6 @@ const Module2Dojo = () => {
                                             </Badge>
                                         </div>
                                     )}
-                                    <div className="absolute bottom-4 left-4 right-4 z-30">
-                                        <div className="text-center text-sm text-white bg-black/50 rounded p-2">
-                                            {feedback ||
-                                                "Position yourself in front of the camera"}
-                                        </div>
-                                    </div>
                                 </>
                             )}
                         </div>
@@ -924,6 +1034,32 @@ const Module2Dojo = () => {
                                     <Play className="w-4 h-4 mr-2" />
                                     Start Training
                                 </Button>
+                            )}
+                            {!isTraining && !isCompleted && (
+                                /* Reference Image */
+                                <div className="text-center">
+                                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                                        Reference Pose
+                                    </h4>
+                                    <div className="relative inline-block">
+                                        <img
+                                            src={poseImages[currentPose]}
+                                            alt={`${currentPoseData.name} reference`}
+                                            className="w-48 h-64 object-cover rounded-lg border-2 border-primary/20 shadow-lg"
+                                            onError={(e) => {
+                                                e.target.style.display = "none";
+                                                e.target.nextSibling.style.display =
+                                                    "block";
+                                            }}
+                                        />
+                                        <div
+                                            className="w-48 h-64 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-sm"
+                                            style={{ display: "none" }}
+                                        >
+                                            Image not found
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                             {isTraining && (
                                 <div className="space-y-2">
@@ -1049,6 +1185,23 @@ const Module2Dojo = () => {
                                         >
                                             Complete
                                         </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* AI Feedback Display */}
+                            {aiFeedback && (
+                                <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <div className="text-2xl">🤖</div>
+                                        <div>
+                                            <div className="font-semibold text-blue-300 mb-2">
+                                                AI Feedback
+                                            </div>
+                                            <div className="text-sm text-blue-100 leading-relaxed">
+                                                {aiFeedback}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}

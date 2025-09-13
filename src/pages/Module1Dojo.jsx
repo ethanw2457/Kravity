@@ -241,11 +241,6 @@ const Module1Dojo = () => {
                 pose.onResults((results) => {
                     setPoseResults(results);
                     if (results.poseLandmarks) {
-                        console.log(
-                            "Pose detected with",
-                            results.poseLandmarks.length,
-                            "landmarks"
-                        );
                         calculateJointAngles(results.poseLandmarks);
                         drawPoseLandmarks(results);
                     } else {
@@ -561,7 +556,9 @@ const Module1Dojo = () => {
             });
 
             streamRef.current = stream;
+            console.log("🎥 Setting cameraActive to true");
             setCameraActive(true);
+            console.log("🎥 cameraActive set to true");
 
             // Start pose detection when camera is active
             if (isMediaPipeLoaded && poseDetector && videoRef.current) {
@@ -743,12 +740,18 @@ const Module1Dojo = () => {
         console.log("Reference angles set:", poseAngles);
         console.log("Reference weights set:", poseWeights);
 
+        console.log("🎥 Starting camera...");
+        setIsTraining(true); // Set training to true BEFORE starting camera
+        console.log("🎥 Training state set to true");
         await startCamera();
-        setIsTraining(true);
+        console.log("🎥 Camera started, cameraActive should be true now");
 
         // Start real-time feedback after a short delay to allow camera to initialize
         setTimeout(() => {
             startRealtimeFeedback();
+            // Also generate immediate feedback for the first pose
+            console.log("🎯 Generating immediate feedback for first pose");
+            generateAIFeedback();
         }, 2000); // 2 second delay
     };
 
@@ -766,12 +769,21 @@ const Module1Dojo = () => {
 
     // Function to generate AI feedback for the current pose
     const generateAIFeedback = async () => {
+        console.log("🎯 generateAIFeedback called");
         try {
             const currentPoseData = poses[currentPose];
             const currentAngles = jointAngles;
             const referenceAngles = referenceAnglesRef.current;
 
+            console.log("📊 Feedback data:", {
+                currentPoseData,
+                currentAngles,
+                referenceAngles,
+                overallAccuracy,
+            });
+
             if (currentPoseData && referenceAngles) {
+                console.log("✅ Calling generatePoseFeedback...");
                 const feedback = await generatePoseFeedback(
                     currentPoseData.name,
                     currentPoseData.description,
@@ -779,10 +791,13 @@ const Module1Dojo = () => {
                     referenceAngles,
                     currentAngles
                 );
+                console.log("📝 Received feedback:", feedback);
                 setAiFeedback(feedback);
+            } else {
+                console.log("❌ Missing data for feedback generation");
             }
         } catch (error) {
-            console.error("Error generating AI feedback:", error);
+            console.error("❌ Error generating AI feedback:", error);
             setAiFeedback(
                 "Great effort! Keep practicing to improve your form and technique."
             );
@@ -791,17 +806,24 @@ const Module1Dojo = () => {
 
     // Function to start real-time feedback interval
     const startRealtimeFeedback = () => {
+        console.log("🔄 Starting real-time feedback");
         // Clear any existing interval
         if (feedbackInterval) {
             clearInterval(feedbackInterval);
         }
 
-        // Start new interval for real-time feedback every 5 seconds
+        // Start new interval for real-time feedback every 3 seconds
         const interval = setInterval(() => {
-            if (isTraining && cameraActive && overallAccuracy > 0) {
+            console.log("⏰ Real-time feedback interval triggered", {
+                overallAccuracy,
+            });
+            if (overallAccuracy > 0) {
+                console.log("🔄 Generating real-time feedback...");
                 generateAIFeedback();
+            } else {
+                console.log("⏸️ Skipping feedback - no pose detection");
             }
-        }, 5000); // 5 seconds
+        }, 5000); // 3 seconds
 
         setFeedbackInterval(interval);
     };
@@ -832,15 +854,18 @@ const Module1Dojo = () => {
         }
 
         if (currentPose < poses.length - 1) {
+            // Generate AI feedback for the completed pose BEFORE stopping camera
+            console.log(
+                "🎯 Generating feedback for completed pose before progression"
+            );
+            generateAIFeedback();
+
             // Turn off camera and pause training
             stopCamera();
             setIsTraining(false);
 
             // Stop real-time feedback
             stopRealtimeFeedback();
-
-            // Generate AI feedback for the completed pose
-            generateAIFeedback();
 
             // Move to next pose
             setCurrentPose((prev) => prev + 1);
@@ -859,14 +884,17 @@ const Module1Dojo = () => {
             }
         } else {
             // All poses completed
+            // Generate AI feedback for the final pose BEFORE stopping camera
+            console.log(
+                "🎯 Generating feedback for final pose before completion"
+            );
+            generateAIFeedback();
+
             setIsTraining(false);
             stopCamera();
 
             // Stop real-time feedback
             stopRealtimeFeedback();
-
-            // Generate AI feedback for the final pose
-            generateAIFeedback();
 
             setFeedback("Module completed! Excellent work!");
             // Navigate to results page after a short delay
