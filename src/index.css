@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PhoDefense Design System - Combat & Training Themed
+All colors MUST be HSL for proper theming.
+*/
+
+@layer base {
+  :root {
+    /* Combat Dark Theme */
+    --background: 220 15% 8%;
+    --foreground: 0 0% 95%;
+
+    --card: 220 20% 12%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Combat Red Primary */
+    --primary: 0 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 0 85% 65%;
+
+    /* Tactical Secondary */
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 0 0% 90%;
+
+    /* Muted Combat */
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 65%;
+
+    /* Warning Accent */
+    --accent: 35 85% 55%;
+    --accent-foreground: 0 0% 10%;
+
+    /* Danger Red */
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Tactical Borders */
+    --border: 220 15% 25%;
+    --input: 220 15% 18%;
+    --ring: 0 85% 55%;
+
+    --radius: 0.5rem;
+
+    /* Combat Gradients */
+    --gradient-combat: linear-gradient(135deg, hsl(0 85% 55%), hsl(0 85% 45%));
+    --gradient-tactical: linear-gradient(135deg, hsl(220 15% 20%), hsl(220 15% 15%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 15% 8%), hsl(220 20% 12%));
+    
+    /* Combat Shadows */
+    --shadow-combat: 0 10px 30px -10px hsl(0 85% 55% / 0.3);
+    --shadow-glow: 0 0 40px hsl(0 85% 65% / 0.4);
+    --shadow-tactical: 0 4px 20px -4px hsl(220 15% 5% / 0.6);
+
+    /* Combat Animations */
+    --transition-combat: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s ease-out;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
