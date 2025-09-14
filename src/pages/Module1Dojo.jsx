@@ -799,13 +799,9 @@ const Module1Dojo = () => {
         // Start real-time feedback after a short delay to allow camera to initialize
         setTimeout(() => {
             startRealtimeFeedback();
-            // Only generate immediate feedback if camera is still active
-            if (cameraActive && isTraining) {
-                console.log("🎯 Generating immediate feedback for first pose");
-                generateAIFeedback();
-            } else {
-                console.log("⏸️ Skipping immediate feedback - camera not active");
-            }
+            // Also generate immediate feedback for the first pose
+            console.log("🎯 Generating immediate feedback for first pose");
+            generateAIFeedback();
         }, 2000); // 2 second delay
 
         setFeedback("Position yourself in front of the camera and begin!");
@@ -874,17 +870,14 @@ const Module1Dojo = () => {
         const interval = setInterval(() => {
             console.log("⏰ Real-time feedback interval triggered", {
                 overallAccuracy,
-                cameraActive,
-                isTraining,
             });
-            // Only generate feedback if camera is active, training is running, and we have pose data
-            if (cameraActive && isTraining && overallAccuracy > 0) {
+            if (overallAccuracy > 0) {
                 console.log("🔄 Generating real-time feedback...");
                 generateAIFeedback();
             } else {
-                console.log("⏸️ Skipping feedback - camera not active or no pose detection");
+                console.log("⏸️ Skipping feedback - no pose detection");
             }
-        }, 6000); // 6 seconds
+        }, 6000); // 3 seconds
 
         setFeedbackInterval(interval);
     };
@@ -915,15 +908,11 @@ const Module1Dojo = () => {
         }
 
         if (currentPose < poses.length - 1) {
-            // Generate AI feedback for the completed pose ONLY if camera is still active
-            if (cameraActive && isTraining) {
-                console.log(
-                    "🎯 Generating feedback for completed pose before progression"
-                );
-                generateAIFeedback();
-            } else {
-                console.log("⏸️ Skipping feedback - camera not active");
-            }
+            // Generate AI feedback for the completed pose BEFORE stopping camera
+            console.log(
+                "🎯 Generating feedback for completed pose before progression"
+            );
+            generateAIFeedback();
 
             // Turn off camera and pause training
             stopCamera();
@@ -949,15 +938,11 @@ const Module1Dojo = () => {
             }
         } else {
             // All poses completed
-            // Generate AI feedback for the final pose ONLY if camera is still active
-            if (cameraActive && isTraining) {
-                console.log(
-                    "🎯 Generating feedback for final pose before completion"
-                );
-                generateAIFeedback();
-            } else {
-                console.log("⏸️ Skipping final feedback - camera not active");
-            }
+            // Generate AI feedback for the final pose BEFORE stopping camera
+            console.log(
+                "🎯 Generating feedback for final pose before completion"
+            );
+            generateAIFeedback();
 
             setIsTraining(false);
             stopCamera();
@@ -1265,7 +1250,7 @@ const Module1Dojo = () => {
                                             <div className="font-semibold text-blue-300 mb-2">
                                                 AI Feedback
                                             </div>
-                                            <div className="text-sm text-blue-100 leading-relaxed">
+                                            <div className="text-base text-blue-100 leading-relaxed">
                                                 {aiFeedback}
                                             </div>
                                         </div>
