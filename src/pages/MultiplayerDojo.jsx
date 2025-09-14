@@ -1256,6 +1256,8 @@ const MultiplayerDojo = () => {
 
                                                     stopCamera();
                                                     setIsTraining(false);
+                                                    // Stop AI feedback to prevent continued Gemini calls
+                                                    stopRealtimeFeedback();
 
                                                     const nextPose =
                                                         currentPose + 1;

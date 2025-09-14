@@ -1163,6 +1163,8 @@ const Module2Dojo = () => {
                                                     // Turn off camera and pause training
                                                     stopCamera();
                                                     setIsTraining(false);
+                                                    // Stop AI feedback to prevent continued Gemini calls
+                                                    stopRealtimeFeedback();
 
                                                     // Move to next pose
                                                     const nextPose =
