@@ -16,6 +16,7 @@ const ai = new GoogleGenAI({ apiKey });
  * Generate feedback for pose training
  * @param {string} poseName - The name of the pose being practiced
  * @param {string} poseDescription - The description of the pose being practiced
+ * @param {string} poseKeyPoints - The key points of the pose being practiced
  * @param {number} accuracy - The accuracy percentage achieved
  * @param {Object} referenceAngles - The reference angles for the pose
  * @param {Object} currentAngles - The current angles for the pose
@@ -24,6 +25,7 @@ const ai = new GoogleGenAI({ apiKey });
 export async function generatePoseFeedback(
     poseName,
     poseDescription,
+    poseKeyPoints,
     accuracy,
     referenceAngles,
     currentAngles
@@ -31,6 +33,7 @@ export async function generatePoseFeedback(
     console.log("🤖 generatePoseFeedback called with:", {
         poseName,
         poseDescription,
+        poseKeyPoints,
         accuracy,
         referenceAngles,
         currentAngles,
@@ -48,6 +51,7 @@ export async function generatePoseFeedback(
         Here is some information about the pose being practiced and the user training information:
         Pose Name: ${poseName}
         Pose Description: ${poseDescription}
+        Pose Key Points: ${poseKeyPoints}
         Accuracy: ${accuracy}%
         Reference Angles: ${JSON.stringify(referenceAngles)}
         Current Angles: ${JSON.stringify(currentAngles)}
@@ -62,7 +66,7 @@ export async function generatePoseFeedback(
         - "Your left elbow is too high, try bringing it down"
         - "Your right knee is too low, try lifting it up"
         - "Your left arm is a bit low, raising it a bit more will help"
-        
+
         Keep the tone positive and supportive. In order for the user to pass the pose, they need to have at least 90% overall accuracy. 
         The way accuracy is calculated is based on the difference between the reference angles and the current angles (with a 10 degree tolerance). The difference is then multiplied by the weight of the joint. The overall accuracy is the sum of the weighted accuracies divided by the sum of the weights.
         `;

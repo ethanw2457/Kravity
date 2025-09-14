@@ -87,53 +87,58 @@ const Module1Dojo = () => {
             id: 1,
             name: "Guard Position Right Jab",
             description:
-                "Maintain a balanced defensive stance with hands raised",
+                "Maintain a balanced defensive stance with fisted hands raised, ready for a right jab",
             keyPoints: [
                 "Feet shoulder-width apart",
-                "Hands at face level",
-                "Weight evenly distributed",
-                "Eyes focused forward",
+                "Hands fisted at chin level",
+                "Right leg a step behind the left",
+                "Left arm slightly further out than the right",
             ],
         },
         {
             id: 2,
             name: "Guard Position Left Jab",
             description:
-                "Lower defensive position ready to block incoming attacks",
+                "Maintain a balanced defensive stance with fisted hands raised, ready for a left jab",
             keyPoints: [
-                "Slight crouch",
-                "Arms positioned to protect body",
-                "Quick reaction posture",
-                "Stable base",
+                "Feet shoulder-width apart",
+                "Hands fisted at chin level",
+                "Left leg a step behind the right",
+                "Right arm slightly further out than the left",
             ],
         },
         {
             id: 3,
             name: "Basic Block with Right Hand",
-            description: "Execute a fundamental blocking movement",
+            description:
+                "Strike and block opponent with the palm of right hand",
             keyPoints: [
-                "Forearm parallel to ground",
-                "Elbow at 90 degrees",
-                "Strong defensive position",
-                "Ready to counter",
+                "Starts in Left Ready Stance",
+                "Extend front arm (right arm) straight",
+                "Open fist into a palm",
+                "Keep rest of stance steady",
             ],
         },
         {
             id: 4,
             name: "Basic Block with Left Hand",
-            description: "Return to neutral combat-ready stance",
+            description: "Strike and block opponent with the palm of left hand",
             keyPoints: [
-                "Relaxed but alert",
-                "Hands at sides",
-                "Weight balanced",
-                "Ready to react",
+                "Starts in Right Ready Stance",
+                "Extend rear arm (left arm) straight",
+                "Open fist into a palm",
+                "Keep rest of stance steady",
             ],
         },
         {
             id: 5,
             name: "Crane Stance",
             description: "Crane stance",
-            keyPoints: ["Hands at sides", "Weight balanced", "Ready to react"],
+            keyPoints: [
+                "Hands and elbows bent outwards",
+                "Weight balanced",
+                "Ready to react",
+            ],
         },
         {
             id: 6,
@@ -740,12 +745,6 @@ const Module1Dojo = () => {
         console.log("Reference angles set:", poseAngles);
         console.log("Reference weights set:", poseWeights);
 
-        console.log("🎥 Starting camera...");
-        setIsTraining(true); // Set training to true BEFORE starting camera
-        console.log("🎥 Training state set to true");
-        await startCamera();
-        console.log("🎥 Camera started, cameraActive should be true now");
-
         // Start real-time feedback after a short delay to allow camera to initialize
         setTimeout(() => {
             startRealtimeFeedback();
@@ -783,10 +782,10 @@ const Module1Dojo = () => {
             });
 
             if (currentPoseData && referenceAngles) {
-                console.log("✅ Calling generatePoseFeedback...");
                 const feedback = await generatePoseFeedback(
                     currentPoseData.name,
                     currentPoseData.description,
+                    currentPoseData.keyPoints,
                     overallAccuracy,
                     referenceAngles,
                     currentAngles
@@ -795,6 +794,8 @@ const Module1Dojo = () => {
                 setAiFeedback(feedback);
             } else {
                 console.log("❌ Missing data for feedback generation");
+                console.log("  currentPoseData:", currentPoseData);
+                console.log("  referenceAngles:", referenceAngles);
             }
         } catch (error) {
             console.error("❌ Error generating AI feedback:", error);
