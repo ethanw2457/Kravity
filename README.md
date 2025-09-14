@@ -1,6 +1,6 @@
 # Kravity 🌌
 
-**Gamified AR Fitness Meets Gravity-Based Self-Defense**
+**Gamifying Self Defense with Machine Learning**
 
 Kravity is a mobile-first AR platform built to make self-defense training fun, accessible, and engaging.  
 Developed at [HopHacks Fall 2025](https://hophacks-fall-2025.devpost.com/) by [Ethan Wang](https://www.linkedin.com/in/ethangwang/) and [Alyssa Xu](https://www.linkedin.com/in/alyssa-xu28/), Kravity transforms physical motion into an interactive self-defense experience through real-time AR tracking, gamification, and personalized feedback.
@@ -37,19 +37,18 @@ Check out our full pitch deck for visuals, problem framing, and demo flow:
 ---
 
 ## 👥 Team
-- **[Ethan Wang](https://x.com/ethangwang)**
-  - Product + Frontend Development
-  - Full-stack implementation & pitch  
-  - [Instagram](https://www.instagram.com/ethangwang/) | [LinkedIn](https://www.linkedin.com/in/ethangwang/)
+- **Ethan Wang**
+  - [X/Twitter](https://x.com/ethangwang)
+  - [Instagram](https://www.instagram.com/ethangwang/)
+  - [LinkedIn](https://www.linkedin.com/in/ethangwang/)
 
-- **[Alyssa Xu](https://www.instagram.com/alyssa.x__/)**  
-  - Research + Design + Integration  
-  - UX flow and visual branding  
+- **Alyssa Xu**  
+  - [Instagram](https://www.instagram.com/alyssa.x__/)
   - [LinkedIn](https://www.linkedin.com/in/alyssa-xu28/)
 
 ---
 
-## 🏆 Hackathon
+## Hackathon
 Built at **HopHacks Fall 2025**  
 [Devpost Project Page](https://hophacks-fall-2025.devpost.com/)
 
@@ -65,8 +64,3 @@ Built at **HopHacks Fall 2025**
 
 ## 📥 Installation
 Clone the repo and install dependencies:
-```bash
-git clone https://github.com/ethanw2457/Kravity.git
-cd Kravity
-npm install
-npm run dev
