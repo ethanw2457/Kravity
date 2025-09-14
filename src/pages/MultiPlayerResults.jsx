@@ -240,9 +240,8 @@ const MultiPlayerResults = () => {
                                         <div className="text-base text-muted-foreground space-y-2 font-semibold">
                                             <div>
                                                 Accuracy:{" "}
-                                                {Math.round(
-                                                    player1Results.averageAccuracy ||
-                                                        0
+                                                {player1Results.averageAccuracy.toFixed(
+                                                    1
                                                 )}
                                                 %
                                             </div>
@@ -304,9 +303,8 @@ const MultiPlayerResults = () => {
                                         <div className="text-base text-muted-foreground space-y-2 font-semibold">
                                             <div>
                                                 Accuracy:{" "}
-                                                {Math.round(
-                                                    player2Results.averageAccuracy ||
-                                                        0
+                                                {player2Results.averageAccuracy.toFixed(
+                                                    1
                                                 )}
                                                 %
                                             </div>
