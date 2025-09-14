@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini AI client with the API key from environment variables
-const apiKey = "AIzaSyAXWk9QDf1NzjfQ4oZvxNCwSlhfl1BGg28";
+const apiKey = "AIzaSyBS1ptYRcZJ6GGyy_GjL9I3onCJZnTCNX8";
 console.log("API Key loaded:", apiKey ? "✅ Present" : "❌ Missing");
 
 if (!apiKey) {
@@ -71,18 +71,34 @@ export async function generatePoseFeedback(
         The way accuracy is calculated is based on the difference between the reference angles and the current angles (with a 10 degree tolerance). The difference is then multiplied by the weight of the joint. The overall accuracy is the sum of the weighted accuracies divided by the sum of the weights.
         `;
 
-        console.log("🚀 Sending request to Gemini API...");
+        console.log("🚀 SENDING API CALL TO GEMINI AI...");
+        console.log("📊 Request details:", {
+            model: "gemini-2.5-flash-lite",
+            promptLength: prompt.length,
+            timestamp: new Date().toISOString(),
+        });
+
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-lite",
             contents: prompt,
         });
+        const endTime = Date.now();
+        const duration = endTime - startTime;
 
-        console.log("✅ Gemini API response:", response);
+        console.log("✅ GEMINI API CALL COMPLETED");
+        console.log("⏱️ API call duration:", `${duration}ms`);
         console.log("📝 Response text:", response.text);
+        console.log("🔍 Full response object:", response);
 
         return response.text;
     } catch (error) {
-        console.error("Error generating feedback:", error);
+        console.error("❌ GEMINI API CALL FAILED (Pose Feedback):", error);
+        console.error("🔍 Error details:", {
+            errorMessage: error.message,
+            errorStack: error.stack,
+            timestamp: new Date().toISOString(),
+        });
         return "Great effort! Keep practicing to improve your form and technique.";
     }
 }
@@ -93,6 +109,8 @@ export async function generatePoseFeedback(
  * @returns {Promise<string>} - Generated feedback text
  */
 export async function generateSessionFeedback(sessionData) {
+    console.log("🤖 generateSessionFeedback called with:", sessionData);
+
     try {
         if (!apiKey) {
             throw new Error(
@@ -119,13 +137,34 @@ export async function generateSessionFeedback(sessionData) {
         Keep the tone positive, professional, and motivating.
         `;
 
+        console.log("🚀 SENDING API CALL TO GEMINI AI (Session Feedback)...");
+        console.log("📊 Request details:", {
+            model: "gemini-2.5-flash",
+            promptLength: prompt.length,
+            timestamp: new Date().toISOString(),
+        });
+
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
         });
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+
+        console.log("✅ GEMINI API CALL COMPLETED (Session Feedback)");
+        console.log("⏱️ API call duration:", `${duration}ms`);
+        console.log("📝 Response text:", response.text);
+        console.log("🔍 Full response object:", response);
+
         return response.text;
     } catch (error) {
-        console.error("Error generating session feedback:", error);
+        console.error("❌ GEMINI API CALL FAILED (Session Feedback):", error);
+        console.error("🔍 Error details:", {
+            errorMessage: error.message,
+            errorStack: error.stack,
+            timestamp: new Date().toISOString(),
+        });
         return "Excellent training session! Your dedication to improving your martial arts skills is commendable. Keep up the great work!";
     }
 }

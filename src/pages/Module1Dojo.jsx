@@ -595,35 +595,80 @@ const Module1Dojo = () => {
     };
 
     const stopCamera = () => {
-        // Stop the media stream
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach((track) => track.stop());
-            streamRef.current = null;
+        try {
+            console.log(
+                "🎥 Starting comprehensive camera cleanup in Module1Dojo..."
+            );
+
+            // 1. Stop the main media stream
+            if (streamRef.current) {
+                console.log("Stopping main stream tracks");
+                streamRef.current.getTracks().forEach((track) => {
+                    console.log(
+                        `Stopping track: ${track.kind} - ${track.label}`
+                    );
+                    track.stop();
+                });
+                streamRef.current = null;
+            }
+
+            // 2. Clear video element
+            if (videoRef.current) {
+                console.log("Clearing video element");
+                videoRef.current.srcObject = null;
+                videoRef.current.pause();
+            }
+
+            // 3. Stop MediaPipe camera if it's running
+            if (mediaPipeCameraRef.current) {
+                console.log("Stopping MediaPipe camera");
+                mediaPipeCameraRef.current.stop();
+                mediaPipeCameraRef.current = null;
+            }
+
+            // 4. Cancel any animation frames
+            if (poseAnimationRef.current) {
+                console.log("Canceling animation frame");
+                cancelAnimationFrame(poseAnimationRef.current);
+                poseAnimationRef.current = null;
+            }
+
+            // 5. Stop any additional video elements that might exist
+            const allVideoElements = document.querySelectorAll("video");
+            console.log(
+                `Found ${allVideoElements.length} video elements to clean up`
+            );
+            allVideoElements.forEach((video, index) => {
+                if (video.srcObject) {
+                    console.log(`Cleaning up video element ${index}`);
+                    const stream = video.srcObject;
+                    if (stream && stream.getTracks) {
+                        stream.getTracks().forEach((track) => track.stop());
+                    }
+                    video.srcObject = null;
+                    video.pause();
+                }
+            });
+
+            // 6. Clear any global camera references
+            if (window.streamRef && window.streamRef.current) {
+                console.log("Clearing global stream reference");
+                window.streamRef.current
+                    .getTracks()
+                    .forEach((track) => track.stop());
+                window.streamRef.current = null;
+            }
+
+            // 7. Reset accuracy and timer when camera stops
+            setAccuracy(0);
+            setAccuracyTimer(0);
+            setIsAccuracyTimerActive(false);
+            setCameraActive(false);
+
+            console.log("🎥 Camera cleanup completed in Module1Dojo");
+        } catch (error) {
+            console.error("Error stopping camera in Module1Dojo:", error);
         }
-
-        // Clear video element
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
-
-        // Stop MediaPipe camera if it's running
-        if (mediaPipeCameraRef.current) {
-            mediaPipeCameraRef.current.stop();
-            mediaPipeCameraRef.current = null;
-        }
-
-        // Cancel any animation frames
-        if (poseAnimationRef.current) {
-            cancelAnimationFrame(poseAnimationRef.current);
-            poseAnimationRef.current = null;
-        }
-
-        // Reset accuracy and timer when camera stops
-        setAccuracy(0);
-        setAccuracyTimer(0);
-        setIsAccuracyTimerActive(false);
-
-        setCameraActive(false);
     };
 
     // Set video srcObject when stream is available and start pose detection
@@ -754,9 +799,13 @@ const Module1Dojo = () => {
         // Start real-time feedback after a short delay to allow camera to initialize
         setTimeout(() => {
             startRealtimeFeedback();
-            // Also generate immediate feedback for the first pose
-            console.log("🎯 Generating immediate feedback for first pose");
-            generateAIFeedback();
+            // Only generate immediate feedback if camera is still active
+            if (cameraActive && isTraining) {
+                console.log("🎯 Generating immediate feedback for first pose");
+                generateAIFeedback();
+            } else {
+                console.log("⏸️ Skipping immediate feedback - camera not active");
+            }
         }, 2000); // 2 second delay
 
         setFeedback("Position yourself in front of the camera and begin!");
@@ -825,14 +874,17 @@ const Module1Dojo = () => {
         const interval = setInterval(() => {
             console.log("⏰ Real-time feedback interval triggered", {
                 overallAccuracy,
+                cameraActive,
+                isTraining,
             });
-            if (overallAccuracy > 0) {
+            // Only generate feedback if camera is active, training is running, and we have pose data
+            if (cameraActive && isTraining && overallAccuracy > 0) {
                 console.log("🔄 Generating real-time feedback...");
                 generateAIFeedback();
             } else {
-                console.log("⏸️ Skipping feedback - no pose detection");
+                console.log("⏸️ Skipping feedback - camera not active or no pose detection");
             }
-        }, 6000); // 3 seconds
+        }, 6000); // 6 seconds
 
         setFeedbackInterval(interval);
     };
@@ -863,11 +915,15 @@ const Module1Dojo = () => {
         }
 
         if (currentPose < poses.length - 1) {
-            // Generate AI feedback for the completed pose BEFORE stopping camera
-            console.log(
-                "🎯 Generating feedback for completed pose before progression"
-            );
-            generateAIFeedback();
+            // Generate AI feedback for the completed pose ONLY if camera is still active
+            if (cameraActive && isTraining) {
+                console.log(
+                    "🎯 Generating feedback for completed pose before progression"
+                );
+                generateAIFeedback();
+            } else {
+                console.log("⏸️ Skipping feedback - camera not active");
+            }
 
             // Turn off camera and pause training
             stopCamera();
@@ -893,11 +949,15 @@ const Module1Dojo = () => {
             }
         } else {
             // All poses completed
-            // Generate AI feedback for the final pose BEFORE stopping camera
-            console.log(
-                "🎯 Generating feedback for final pose before completion"
-            );
-            generateAIFeedback();
+            // Generate AI feedback for the final pose ONLY if camera is still active
+            if (cameraActive && isTraining) {
+                console.log(
+                    "🎯 Generating feedback for final pose before completion"
+                );
+                generateAIFeedback();
+            } else {
+                console.log("⏸️ Skipping final feedback - camera not active");
+            }
 
             setIsTraining(false);
             stopCamera();

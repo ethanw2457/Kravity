@@ -16,15 +16,17 @@ const Battlefield = () => {
         setGameState("player1");
     };
 
-    const handlePlayerComplete = (score) => {
-        if (currentPlayer === 1) {
-            setScores((prev) => ({ ...prev, player1: score }));
-            setCurrentPlayer(2);
-            setGameState("player2");
-        } else {
-            setScores((prev) => ({ ...prev, player2: score }));
-            setGameState("results");
-        }
+    const handlePlayerComplete = (score, playerResults = null) => {
+        console.log(
+            `Player ${currentPlayer} completed with score: ${score}`,
+            playerResults
+        );
+
+        // This function is no longer used since MultiplayerDojo handles player transitions internally
+        // But keeping it for backward compatibility
+        console.log(
+            "Battlefield handlePlayerComplete called - MultiplayerDojo now handles transitions internally"
+        );
     };
 
     const renderSetup = () => (
@@ -142,31 +144,12 @@ const Battlefield = () => {
                     </div>
                 </div>
 
-                {currentPlayer === 1 && scores.player1 === 0 && (
-                    <div className="flex gap-4 justify-center">
-                        <Link to="/">
-                            <Button variant="tactical" size="lg">
-                                Return to Home
-                            </Button>
-                        </Link>
-                        <Button
-                            variant="hero"
-                            size="lg"
-                            onClick={() => {
-                                // Store the completion handler in a way that MultiplayerDojo can access it
-                                window.multiplayerCompletionHandler =
-                                    handlePlayerComplete;
-                                window.currentPlayer = 1;
-                                navigate("/multiplayer-dojo");
-                            }}
-                        >
-                            Begin Training Module
-                            <Shield className="w-5 h-5 ml-2" />
+                <div className="flex gap-4 justify-center">
+                    <Link to="/">
+                        <Button variant="tactical" size="lg">
+                            Return to Home
                         </Button>
-                    </div>
-                )}
-
-                {currentPlayer === 2 && scores.player2 === 0 && (
+                    </Link>
                     <Button
                         variant="hero"
                         size="lg"
@@ -174,14 +157,14 @@ const Battlefield = () => {
                             // Store the completion handler in a way that MultiplayerDojo can access it
                             window.multiplayerCompletionHandler =
                                 handlePlayerComplete;
-                            window.currentPlayer = 2;
+                            window.currentPlayer = 1; // Always start with Player 1
                             navigate("/multiplayer-dojo");
                         }}
                     >
                         Begin Training Module
                         <Shield className="w-5 h-5 ml-2" />
                     </Button>
-                )}
+                </div>
             </Card>
 
             {/* Mock completion for demo */}
@@ -197,118 +180,12 @@ const Battlefield = () => {
         </div>
     );
 
-    const renderResults = () => {
-        const winner = scores.player1 > scores.player2 ? 1 : 2;
-        const loser = winner === 1 ? 2 : 1;
-
-        return (
-            <div className="text-center">
-                <div className="mb-8">
-                    <Crown className="w-24 h-24 text-primary mx-auto mb-6" />
-                    <h2 className="text-3xl font-bold mb-4">Battle Results</h2>
-                    <p className="text-lg text-muted-foreground">
-                        The battlefield has been conquered!
-                    </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6 mb-8">
-                    <Card
-                        className={`p-6 border-2 ${
-                            winner === 1
-                                ? "border-primary bg-primary/10"
-                                : "border-border"
-                        }`}
-                    >
-                        <div className="text-center">
-                            {winner === 1 && (
-                                <Crown className="w-8 h-8 text-primary mx-auto mb-2" />
-                            )}
-                            <h3 className="text-xl font-bold mb-2">Player 1</h3>
-                            <div className="text-3xl font-bold text-primary mb-2">
-                                {scores.player1}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                                Final Score
-                            </div>
-                            {winner === 1 && (
-                                <Badge
-                                    variant="outline"
-                                    className="mt-2 bg-primary text-primary-foreground"
-                                >
-                                    VICTOR
-                                </Badge>
-                            )}
-                        </div>
-                    </Card>
-                    <Card
-                        className={`p-6 border-2 ${
-                            winner === 2
-                                ? "border-primary bg-primary/10"
-                                : "border-border"
-                        }`}
-                    >
-                        <div className="text-center">
-                            {winner === 2 && (
-                                <Crown className="w-8 h-8 text-primary mx-auto mb-2" />
-                            )}
-                            <h3 className="text-xl font-bold mb-2">Player 2</h3>
-                            <div className="text-3xl font-bold text-primary mb-2">
-                                {scores.player2}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                                Final Score
-                            </div>
-                            {winner === 2 && (
-                                <Badge
-                                    variant="outline"
-                                    className="mt-2 bg-primary text-primary-foreground"
-                                >
-                                    VICTOR
-                                </Badge>
-                            )}
-                        </div>
-                    </Card>
-                </div>
-
-                <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold text-primary mb-2">
-                        Player {winner} Dominates the Battlefield!
-                    </h3>
-                    <p className="text-muted-foreground">
-                        Victory margin:{" "}
-                        {Math.abs(scores.player1 - scores.player2)} points
-                    </p>
-                </div>
-
-                <div className="space-x-4">
-                    <Button
-                        variant="combat"
-                        size="lg"
-                        onClick={() => {
-                            setGameState("setup");
-                            setScores({ player1: 0, player2: 0 });
-                            setCurrentPlayer(1);
-                        }}
-                    >
-                        New Battle
-                    </Button>
-                    <Link to="/home">
-                        <Button variant="tactical" size="lg">
-                            Return to Base
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="min-h-screen bg-gradient-hero p-6">
             <div className="container mx-auto max-w-4xl">
                 {gameState === "setup" && renderSetup()}
                 {(gameState === "player1" || gameState === "player2") &&
                     renderPlayerTurn()}
-                {gameState === "results" && renderResults()}
             </div>
         </div>
     );

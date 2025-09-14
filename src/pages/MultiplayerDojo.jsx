@@ -21,15 +21,20 @@ import { Pose } from "@mediapipe/pose";
 import { Camera as MediaPipeCamera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import poseReferenceAngles from "../data/poseReferenceAngles.json";
-import { generatePoseFeedback } from "../service/geminiService";
 
 const MultiplayerDojo = () => {
     const { moduleId } = useParams();
     const navigate = useNavigate();
 
     // Get multiplayer state from window object (set by Battlefield component)
-    const currentPlayer = window.currentPlayer || 1;
+    const [currentPlayer, setCurrentPlayer] = useState(
+        window.currentPlayer || 1
+    );
     const onPlayerComplete = window.multiplayerCompletionHandler || null;
+
+    console.log(
+        `🎯 MultiplayerDojo initialized - currentPlayer: ${currentPlayer}, onPlayerComplete: ${typeof onPlayerComplete}`
+    );
 
     const [currentPose, setCurrentPose] = useState(0);
     const [isTraining, setIsTraining] = useState(false);
@@ -39,13 +44,14 @@ const MultiplayerDojo = () => {
     const [feedback, setFeedback] = useState("");
     const [cameraActive, setCameraActive] = useState(false);
     const [cameraError, setCameraError] = useState("");
+    const [isPlayerTransition, setIsPlayerTransition] = useState(false);
     const [accuracyTimer, setAccuracyTimer] = useState(0);
     const [isAccuracyTimerActive, setIsAccuracyTimerActive] = useState(false);
     const [poseStartTime, setPoseStartTime] = useState(null);
     const [poseTimes, setPoseTimes] = useState({});
+    const [poseAccuracies, setPoseAccuracies] = useState({});
     const [stopwatchTime, setStopwatchTime] = useState(0);
     const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
-    const [aiFeedback, setAiFeedback] = useState("");
     const [feedbackInterval, setFeedbackInterval] = useState(null);
     const videoRef = useRef(null);
     const streamRef = useRef(null);
@@ -154,8 +160,8 @@ const MultiplayerDojo = () => {
     const poseImages = {
         0: "/guardRight.jpg",
         1: "/guardLeft.jpg",
-        2: "/blockRight.jpg",
-        3: "/blockLeft.jpg",
+        2: "/basicBlockRight.jpg",
+        3: "/basicBlockLeft.jpg",
         4: "/craneStance.jpg",
         5: "/craneKick.jpg",
     };
@@ -176,6 +182,47 @@ const MultiplayerDojo = () => {
         );
     };
 
+    // Function to save pose accuracy when pose is completed
+    const savePoseAccuracy = (poseIndex, accuracyValue) => {
+        const poseKey = `pose${poseIndex + 1}`;
+        const newPoseAccuracies = {
+            ...poseAccuracies,
+            [poseKey]: accuracyValue,
+        };
+        setPoseAccuracies(newPoseAccuracies);
+        localStorage.setItem(
+            `module1_pose_accuracies_player${currentPlayer}`,
+            JSON.stringify(newPoseAccuracies)
+        );
+        console.log(
+            `Player ${currentPlayer} - Pose ${
+                poseIndex + 1
+            } completed with ${accuracyValue.toFixed(1)}% accuracy`
+        );
+    };
+
+    // Save comprehensive player results to localStorage
+    const savePlayerResults = (finalScore, totalTime, averageAccuracy) => {
+        const playerResults = {
+            playerId: currentPlayer,
+            finalScore: finalScore,
+            totalTime: totalTime,
+            averageAccuracy: averageAccuracy,
+            poseTimes: poseTimes,
+            poseAccuracies: poseAccuracies,
+            completedAt: new Date().toISOString(),
+            module: "Module 1 - Basic Defense Stances",
+        };
+
+        localStorage.setItem(
+            `multiplayer_player${currentPlayer}_results`,
+            JSON.stringify(playerResults)
+        );
+
+        console.log(`Player ${currentPlayer} results saved:`, playerResults);
+        return playerResults;
+    };
+
     const loadPoseTimes = () => {
         const saved = localStorage.getItem(
             `module1_pose_times_player${currentPlayer}`
@@ -187,29 +234,66 @@ const MultiplayerDojo = () => {
         }
     };
 
-    // Function to get reference angles and weights for current pose
-    const getPoseReferenceData = (poseIndex) => {
-        switch (poseIndex) {
-            case 0: // First pose - Guard Position Right Jab
-                return poseReferenceAngles.poses.guardRight;
-            case 1: // Second pose - Guard Position Left Jab
-                return poseReferenceAngles.poses.guardLeft;
-            case 2: // Third pose - Basic Block with Right Hand
-                return poseReferenceAngles.poses.blockRight;
-            case 3: // Fourth pose - Basic Block with Left Hand
-                return poseReferenceAngles.poses.blockLeft;
-            case 4: // Fifth pose - Crane Stance
-                return poseReferenceAngles.poses.crane;
-            case 5: // Sixth pose - Crane Kick!
-                return poseReferenceAngles.poses.craneKick;
-            default:
-                return poseReferenceAngles.poses.guardRight;
+    const loadPoseAccuracies = () => {
+        const saved = localStorage.getItem(
+            `module1_pose_accuracies_player${currentPlayer}`
+        );
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            setPoseAccuracies(parsed);
+            console.log(
+                `Player ${currentPlayer} - Loaded pose accuracies:`,
+                parsed
+            );
         }
     };
 
-    // Load pose times from localStorage on component mount
+    // Function to get reference angles and weights for current pose
+    const getPoseReferenceData = (poseIndex) => {
+        console.log(`Getting pose reference data for index: ${poseIndex}`);
+
+        let poseData;
+        switch (poseIndex) {
+            case 0: // First pose - Guard Position Right Jab
+                poseData = poseReferenceAngles.poses.guardRight;
+                break;
+            case 1: // Second pose - Guard Position Left Jab
+                poseData = poseReferenceAngles.poses.guardLeft;
+                break;
+            case 2: // Third pose - Basic Block with Right Hand
+                poseData = poseReferenceAngles.poses.basicBlockRight;
+                break;
+            case 3: // Fourth pose - Basic Block with Left Hand
+                poseData = poseReferenceAngles.poses.basicBlockLeft;
+                break;
+            case 4: // Fifth pose - Crane Stance
+                poseData = poseReferenceAngles.poses.crane;
+                break;
+            case 5: // Sixth pose - Crane Kick!
+                poseData = poseReferenceAngles.poses.craneKick;
+                break;
+            default:
+                console.warn(
+                    `Unknown pose index: ${poseIndex}, using guardRight as fallback`
+                );
+                poseData = poseReferenceAngles.poses.guardRight;
+        }
+
+        if (!poseData) {
+            console.error(
+                `No pose data found for index ${poseIndex}, using guardRight as fallback`
+            );
+            poseData = poseReferenceAngles.poses.guardRight;
+        }
+
+        console.log(`Pose data for index ${poseIndex}:`, poseData);
+        return poseData;
+    };
+
+    // Load pose times and accuracies from localStorage when player changes
     useEffect(() => {
         loadPoseTimes();
+        loadPoseAccuracies();
     }, [currentPlayer]);
 
     // Stopwatch timer effect
@@ -554,29 +638,80 @@ const MultiplayerDojo = () => {
     };
 
     const stopCamera = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach((track) => track.stop());
-            streamRef.current = null;
-        }
+        try {
+            console.log(
+                "🎥 Starting comprehensive camera cleanup in MultiplayerDojo..."
+            );
 
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
+            // 1. Stop the main media stream
+            if (streamRef.current) {
+                console.log("Stopping main stream tracks");
+                streamRef.current.getTracks().forEach((track) => {
+                    console.log(
+                        `Stopping track: ${track.kind} - ${track.label}`
+                    );
+                    track.stop();
+                });
+                streamRef.current = null;
+            }
 
-        if (mediaPipeCameraRef.current) {
-            mediaPipeCameraRef.current.stop();
-            mediaPipeCameraRef.current = null;
-        }
+            // 2. Clear video element
+            if (videoRef.current) {
+                console.log("Clearing video element");
+                videoRef.current.srcObject = null;
+                videoRef.current.pause();
+            }
 
-        if (poseAnimationRef.current) {
-            cancelAnimationFrame(poseAnimationRef.current);
-            poseAnimationRef.current = null;
-        }
+            // 3. Stop MediaPipe camera if it's running
+            if (mediaPipeCameraRef.current) {
+                console.log("Stopping MediaPipe camera");
+                mediaPipeCameraRef.current.stop();
+                mediaPipeCameraRef.current = null;
+            }
 
-        setAccuracy(0);
-        setAccuracyTimer(0);
-        setIsAccuracyTimerActive(false);
-        setCameraActive(false);
+            // 4. Cancel any animation frames
+            if (poseAnimationRef.current) {
+                console.log("Canceling animation frame");
+                cancelAnimationFrame(poseAnimationRef.current);
+                poseAnimationRef.current = null;
+            }
+
+            // 5. Stop any additional video elements that might exist
+            const allVideoElements = document.querySelectorAll("video");
+            console.log(
+                `Found ${allVideoElements.length} video elements to clean up`
+            );
+            allVideoElements.forEach((video, index) => {
+                if (video.srcObject) {
+                    console.log(`Cleaning up video element ${index}`);
+                    const stream = video.srcObject;
+                    if (stream && stream.getTracks) {
+                        stream.getTracks().forEach((track) => track.stop());
+                    }
+                    video.srcObject = null;
+                    video.pause();
+                }
+            });
+
+            // 6. Clear any global camera references
+            if (window.streamRef && window.streamRef.current) {
+                console.log("Clearing global stream reference");
+                window.streamRef.current
+                    .getTracks()
+                    .forEach((track) => track.stop());
+                window.streamRef.current = null;
+            }
+
+            // 7. Reset accuracy and timer when camera stops
+            setAccuracy(0);
+            setAccuracyTimer(0);
+            setIsAccuracyTimerActive(false);
+            setCameraActive(false);
+
+            console.log("🎥 Camera cleanup completed in MultiplayerDojo");
+        } catch (error) {
+            console.error("Error stopping camera in MultiplayerDojo:", error);
+        }
     };
 
     // Set video srcObject when stream is available and start pose detection
@@ -652,7 +787,7 @@ const MultiplayerDojo = () => {
             const timerInterval = setInterval(() => {
                 setAccuracyTimer((prev) => {
                     const newTime = prev + 1;
-                    if (newTime >= 2) {
+                    if (newTime >= 3) {
                         progressToNextPose();
                         return 0;
                     }
@@ -667,7 +802,6 @@ const MultiplayerDojo = () => {
     const handleStartTraining = async () => {
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
-        setAiFeedback("");
 
         setStopwatchTime(0);
         setIsStopwatchRunning(true);
@@ -686,7 +820,6 @@ const MultiplayerDojo = () => {
 
         setTimeout(() => {
             startRealtimeFeedback();
-            generateAIFeedback();
         }, 2000);
     };
 
@@ -700,32 +833,6 @@ const MultiplayerDojo = () => {
         setFeedback("Training paused. Click resume when ready.");
     };
 
-    // Function to generate AI feedback for the current pose
-    const generateAIFeedback = async () => {
-        try {
-            const currentPoseData = poses[currentPose];
-            const currentAngles = jointAngles;
-            const referenceAngles = referenceAnglesRef.current;
-
-            if (currentPoseData && referenceAngles) {
-                const feedback = await generatePoseFeedback(
-                    currentPoseData.name,
-                    currentPoseData.description,
-                    currentPoseData.keyPoints,
-                    overallAccuracy,
-                    referenceAngles,
-                    currentAngles
-                );
-                setAiFeedback(feedback);
-            }
-        } catch (error) {
-            console.error("Error generating AI feedback:", error);
-            setAiFeedback(
-                "Great effort! Keep practicing to improve your form and technique."
-            );
-        }
-    };
-
     // Function to start real-time feedback interval
     const startRealtimeFeedback = () => {
         if (feedbackInterval) {
@@ -733,9 +840,7 @@ const MultiplayerDojo = () => {
         }
 
         const interval = setInterval(() => {
-            if (overallAccuracy > 0) {
-                generateAIFeedback();
-            }
+            // Real-time feedback interval - no AI calls needed
         }, 5000);
 
         setFeedbackInterval(interval);
@@ -751,6 +856,10 @@ const MultiplayerDojo = () => {
 
     // Function to progress to next pose
     const progressToNextPose = () => {
+        console.log(
+            `🎯 progressToNextPose called - currentPose: ${currentPose}, poses.length: ${poses.length}`
+        );
+
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
         setStopwatchTime(0);
@@ -759,11 +868,17 @@ const MultiplayerDojo = () => {
         if (poseStartTime) {
             const completionTime = (Date.now() - poseStartTime) / 1000;
             savePoseTime(currentPose, completionTime);
+            savePoseAccuracy(currentPose, accuracy); // Save the accuracy for this pose
             setPoseStartTime(null);
         }
 
+        console.log(
+            `🎯 Checking if currentPose (${currentPose}) < poses.length - 1 (${
+                poses.length - 1
+            }): ${currentPose < poses.length - 1}`
+        );
+
         if (currentPose < poses.length - 1) {
-            generateAIFeedback();
             stopCamera();
             setIsTraining(false);
             stopRealtimeFeedback();
@@ -786,20 +901,114 @@ const MultiplayerDojo = () => {
             }
         } else {
             // All poses completed - handle multiplayer completion
-            generateAIFeedback();
-            setIsTraining(false);
-            stopCamera();
-            stopRealtimeFeedback();
+            console.log(
+                `🎯 All poses completed! Player ${currentPlayer} finished all ${poses.length} poses`
+            );
 
-            setFeedback("Module completed! Excellent work!");
+            // Calculate total time and average accuracy
+            const totalTime = Object.values(poseTimes).reduce(
+                (sum, time) => sum + (time || 0),
+                0
+            );
 
-            // Calculate final score and notify parent component
-            const finalScore = score + accuracy * 0.1; // Bonus for accuracy
-            if (onPlayerComplete) {
-                onPlayerComplete(finalScore);
+            // Calculate true average accuracy across all completed poses
+            const completedAccuracies = Object.values(poseAccuracies).filter(
+                (acc) => acc !== null && acc !== undefined
+            );
+            const averageAccuracy =
+                completedAccuracies.length > 0
+                    ? completedAccuracies.reduce((sum, acc) => sum + acc, 0) /
+                      completedAccuracies.length
+                    : accuracy; // Fallback to current accuracy if no saved accuracies
+
+            // Calculate weighted score: 70% accuracy + 30% time bonus
+            // Time bonus: faster completion = higher score (max 30 points)
+            const maxTime = 300; // 5 minutes max for all poses
+            const timeBonus = Math.max(0, 30 - (totalTime / maxTime) * 30);
+            const finalScore = averageAccuracy * 0.7 + timeBonus;
+
+            // Save comprehensive player results
+            const playerResults = savePlayerResults(
+                finalScore,
+                totalTime,
+                averageAccuracy
+            );
+
+            console.log(
+                `Player ${currentPlayer} completed training with score: ${finalScore}`
+            );
+
+            if (currentPlayer === 1) {
+                // Player 1 completed - switch to Player 2 and reset the component
+                console.log(
+                    "🎯 Player 1 completed! Switching to Player 2 and resetting component"
+                );
+
+                // Set transition state
+                setIsPlayerTransition(true);
+                setFeedback("Player 1 completed! Switching to Player 2...");
+
+                // Stop current training
+                setIsTraining(false);
+                stopCamera();
+                stopRealtimeFeedback();
+
+                // Delay the transition to show the message
+                setTimeout(() => {
+                    // Reset all training state for Player 2
+                    setCurrentPose(0);
+                    setScore(100);
+                    setAccuracy(0);
+                    setPoseTimes({});
+                    setPoseAccuracies({});
+                    setStopwatchTime(0);
+                    setIsStopwatchRunning(false);
+                    setPoseStartTime(null);
+                    setFeedback(
+                        "Player 2's turn! Get ready to begin training."
+                    );
+
+                    // Switch to Player 2
+                    setCurrentPlayer(2);
+
+                    // Update window object for consistency
+                    window.currentPlayer = 2;
+
+                    // Clear transition state
+                    setIsPlayerTransition(false);
+                }, 2000); // 2 second delay to show transition message
             } else {
-                // Fallback: navigate back to battlefield
-                navigate("/battlefield");
+                // Player 2 completed - both players done, navigate to results
+                console.log(
+                    "🎯 Player 2 completed! Both players finished, navigating to results"
+                );
+
+                // Immediately set completion state
+                setCurrentPose(poses.length); // This will make isCompleted true
+
+                setIsTraining(false);
+                stopCamera();
+                stopRealtimeFeedback();
+
+                setFeedback("Both players completed! Excellent work!");
+
+                // Get both players' results from localStorage
+                const player1Results = JSON.parse(
+                    localStorage.getItem("multiplayer_player1_results") || "{}"
+                );
+                const player2Results = JSON.parse(
+                    localStorage.getItem("multiplayer_player2_results") || "{}"
+                );
+
+                // Navigate to results with comprehensive data
+                navigate("/multiplayer-results", {
+                    state: {
+                        player1Score: player1Results.finalScore || 0,
+                        player2Score: finalScore,
+                        player1Data: player1Results,
+                        player2Data: playerResults,
+                    },
+                });
             }
         }
     };
@@ -895,7 +1104,7 @@ const MultiplayerDojo = () => {
                                                 variant="outline"
                                                 className="bg-primary text-primary-foreground text-lg font-bold px-4 py-2"
                                             >
-                                                Hold: {accuracyTimer}/2s
+                                                Hold: {accuracyTimer}/3s
                                             </Badge>
                                         </div>
                                     )}
@@ -927,59 +1136,66 @@ const MultiplayerDojo = () => {
                         </div>
 
                         <div className="space-y-3">
-                            {!isTraining && !isCompleted && (
-                                <Button
-                                    variant="combat"
-                                    className="w-full"
-                                    onClick={handleStartTraining}
-                                >
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Start Training
-                                </Button>
-                            )}
-                            {!isTraining && !isCompleted && (
-                                /* Reference Image */
-                                <div className="text-center">
-                                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">
-                                        Reference Pose
-                                    </h4>
-                                    <div className="relative inline-block">
-                                        <img
-                                            src={poseImages[currentPose]}
-                                            alt={`${currentPoseData.name} reference`}
-                                            className="w-48 h-64 object-cover rounded-lg border-2 border-primary/20 shadow-lg"
-                                            onError={(e) => {
-                                                e.target.style.display = "none";
-                                                e.target.nextSibling.style.display =
-                                                    "block";
-                                            }}
-                                        />
-                                        <div
-                                            className="w-48 h-64 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-sm"
-                                            style={{ display: "none" }}
-                                        >
-                                            Image not found
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {!isTraining &&
+                                !isCompleted &&
+                                !isPlayerTransition && (
+                                    <Button
+                                        variant="combat"
+                                        className="w-full"
+                                        onClick={handleStartTraining}
+                                    >
+                                        <Play className="w-4 h-4 mr-2" />
+                                        Start Training
+                                    </Button>
+                                )}
 
-                            {/* AI Feedback Display */}
-                            {aiFeedback && (
-                                <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                        <div className="text-2xl">🤖</div>
-                                        <div>
-                                            <div className="font-semibold text-blue-300 mb-2">
-                                                AI Feedback
-                                            </div>
-                                            <div className="text-sm text-blue-100 leading-relaxed">
-                                                {aiFeedback}
+                            {isPlayerTransition && (
+                                <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                        <div
+                                            className="w-2 h-2 bg-primary rounded-full animate-pulse"
+                                            style={{ animationDelay: "0.2s" }}
+                                        ></div>
+                                        <div
+                                            className="w-2 h-2 bg-primary rounded-full animate-pulse"
+                                            style={{ animationDelay: "0.4s" }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-sm font-medium text-primary">
+                                        {feedback}
+                                    </p>
+                                </div>
+                            )}
+                            {!isTraining &&
+                                !isCompleted &&
+                                !isPlayerTransition && (
+                                    /* Reference Image */
+                                    <div className="text-center">
+                                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                                            Reference Pose
+                                        </h4>
+                                        <div className="relative inline-block">
+                                            <img
+                                                src={poseImages[currentPose]}
+                                                alt={`${currentPoseData.name} reference`}
+                                                className="w-48 h-64 object-cover rounded-lg border-2 border-primary/20 shadow-lg"
+                                                onError={(e) => {
+                                                    e.target.style.display =
+                                                        "none";
+                                                    e.target.nextSibling.style.display =
+                                                        "block";
+                                                }}
+                                            />
+                                            <div
+                                                className="w-48 h-64 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground text-sm"
+                                                style={{ display: "none" }}
+                                            >
+                                                Image not found
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
                             {isTraining && (
                                 <div className="space-y-2">
@@ -1017,11 +1233,24 @@ const MultiplayerDojo = () => {
                                                         ...poseTimes,
                                                         [poseKey]: null,
                                                     };
+                                                    const newPoseAccuracies = {
+                                                        ...poseAccuracies,
+                                                        [poseKey]: 0, // Skipped poses get 0% accuracy
+                                                    };
                                                     setPoseTimes(newPoseTimes);
+                                                    setPoseAccuracies(
+                                                        newPoseAccuracies
+                                                    );
                                                     localStorage.setItem(
                                                         `module1_pose_times_player${currentPlayer}`,
                                                         JSON.stringify(
                                                             newPoseTimes
+                                                        )
+                                                    );
+                                                    localStorage.setItem(
+                                                        `module1_pose_accuracies_player${currentPlayer}`,
+                                                        JSON.stringify(
+                                                            newPoseAccuracies
                                                         )
                                                     );
 
@@ -1038,16 +1267,164 @@ const MultiplayerDojo = () => {
                                                     if (
                                                         nextPose >= poses.length
                                                     ) {
-                                                        const finalScore =
-                                                            score +
-                                                            accuracy * 0.1;
-                                                        if (onPlayerComplete) {
-                                                            onPlayerComplete(
-                                                                finalScore
+                                                        // All poses completed - use the same logic as progressToNextPose
+                                                        console.log(
+                                                            `🎯 All poses completed via skip! Player ${currentPlayer} finished all ${poses.length} poses`
+                                                        );
+
+                                                        // Calculate total time and average accuracy
+                                                        const totalTime =
+                                                            Object.values(
+                                                                poseTimes
+                                                            ).reduce(
+                                                                (sum, time) =>
+                                                                    sum +
+                                                                    (time || 0),
+                                                                0
                                                             );
+
+                                                        // Calculate true average accuracy across all completed poses
+                                                        const completedAccuracies =
+                                                            Object.values(
+                                                                poseAccuracies
+                                                            ).filter(
+                                                                (acc) =>
+                                                                    acc !==
+                                                                        null &&
+                                                                    acc !==
+                                                                        undefined
+                                                            );
+                                                        const averageAccuracy =
+                                                            completedAccuracies.length >
+                                                            0
+                                                                ? completedAccuracies.reduce(
+                                                                      (
+                                                                          sum,
+                                                                          acc
+                                                                      ) =>
+                                                                          sum +
+                                                                          acc,
+                                                                      0
+                                                                  ) /
+                                                                  completedAccuracies.length
+                                                                : accuracy; // Fallback to current accuracy if no saved accuracies
+
+                                                        // Calculate weighted score: 70% accuracy + 30% time bonus
+                                                        // Time bonus: faster completion = higher score (max 30 points)
+                                                        const maxTime = 300; // 5 minutes max for all poses
+                                                        const timeBonus =
+                                                            Math.max(
+                                                                0,
+                                                                30 -
+                                                                    (totalTime /
+                                                                        maxTime) *
+                                                                        30
+                                                            );
+                                                        const finalScore =
+                                                            averageAccuracy *
+                                                                0.7 +
+                                                            timeBonus;
+
+                                                        // Save comprehensive player results
+                                                        const playerResults =
+                                                            savePlayerResults(
+                                                                finalScore,
+                                                                totalTime,
+                                                                averageAccuracy
+                                                            );
+
+                                                        if (
+                                                            currentPlayer === 1
+                                                        ) {
+                                                            // Player 1 completed - switch to Player 2 and reset the component
+                                                            console.log(
+                                                                "🎯 Player 1 completed via skip! Switching to Player 2 and resetting component"
+                                                            );
+
+                                                            // Set transition state
+                                                            setIsPlayerTransition(
+                                                                true
+                                                            );
+                                                            setFeedback(
+                                                                "Player 1 completed! Switching to Player 2..."
+                                                            );
+
+                                                            // Delay the transition to show the message
+                                                            setTimeout(() => {
+                                                                // Reset all training state for Player 2
+                                                                setCurrentPose(
+                                                                    0
+                                                                );
+                                                                setScore(100);
+                                                                setAccuracy(0);
+                                                                setPoseTimes(
+                                                                    {}
+                                                                );
+                                                                setPoseAccuracies(
+                                                                    {}
+                                                                );
+                                                                setStopwatchTime(
+                                                                    0
+                                                                );
+                                                                setIsStopwatchRunning(
+                                                                    false
+                                                                );
+                                                                setPoseStartTime(
+                                                                    null
+                                                                );
+                                                                setFeedback(
+                                                                    "Player 2's turn! Get ready to begin training."
+                                                                );
+
+                                                                // Switch to Player 2
+                                                                setCurrentPlayer(
+                                                                    2
+                                                                );
+
+                                                                // Update window object for consistency
+                                                                window.currentPlayer = 2;
+
+                                                                // Clear transition state
+                                                                setIsPlayerTransition(
+                                                                    false
+                                                                );
+                                                            }, 2000);
                                                         } else {
+                                                            // Player 2 completed - both players done, navigate to results
+                                                            console.log(
+                                                                "🎯 Player 2 completed via skip! Both players finished, navigating to results"
+                                                            );
+
+                                                            // Get both players' results from localStorage
+                                                            const player1Results =
+                                                                JSON.parse(
+                                                                    localStorage.getItem(
+                                                                        "multiplayer_player1_results"
+                                                                    ) || "{}"
+                                                                );
+                                                            const player2Results =
+                                                                JSON.parse(
+                                                                    localStorage.getItem(
+                                                                        "multiplayer_player2_results"
+                                                                    ) || "{}"
+                                                                );
+
+                                                            // Navigate to results with comprehensive data
                                                             navigate(
-                                                                "/battlefield"
+                                                                "/multiplayer-results",
+                                                                {
+                                                                    state: {
+                                                                        player1Score:
+                                                                            player1Results.finalScore ||
+                                                                            0,
+                                                                        player2Score:
+                                                                            finalScore,
+                                                                        player1Data:
+                                                                            player1Results,
+                                                                        player2Data:
+                                                                            playerResults,
+                                                                    },
+                                                                }
                                                             );
                                                         }
                                                     } else {
@@ -1088,14 +1465,139 @@ const MultiplayerDojo = () => {
                                             onClick={() => {
                                                 setIsTraining(false);
                                                 stopCamera();
-                                                const finalScore =
-                                                    score + accuracy * 0.1;
-                                                if (onPlayerComplete) {
-                                                    onPlayerComplete(
-                                                        finalScore
+
+                                                // All poses completed - use the same logic as progressToNextPose
+                                                console.log(
+                                                    `🎯 All poses completed via manual complete! Player ${currentPlayer} finished all ${poses.length} poses`
+                                                );
+
+                                                // Calculate total time and average accuracy
+                                                const totalTime = Object.values(
+                                                    poseTimes
+                                                ).reduce(
+                                                    (sum, time) =>
+                                                        sum + (time || 0),
+                                                    0
+                                                );
+
+                                                // Calculate true average accuracy across all completed poses
+                                                const completedAccuracies =
+                                                    Object.values(
+                                                        poseAccuracies
+                                                    ).filter(
+                                                        (acc) =>
+                                                            acc !== null &&
+                                                            acc !== undefined
                                                     );
+                                                const averageAccuracy =
+                                                    completedAccuracies.length >
+                                                    0
+                                                        ? completedAccuracies.reduce(
+                                                              (sum, acc) =>
+                                                                  sum + acc,
+                                                              0
+                                                          ) /
+                                                          completedAccuracies.length
+                                                        : accuracy; // Fallback to current accuracy if no saved accuracies
+
+                                                // Calculate weighted score: 70% accuracy + 30% time bonus
+                                                // Time bonus: faster completion = higher score (max 30 points)
+                                                const maxTime = 300; // 5 minutes max for all poses
+                                                const timeBonus = Math.max(
+                                                    0,
+                                                    30 -
+                                                        (totalTime / maxTime) *
+                                                            30
+                                                );
+                                                const finalScore =
+                                                    averageAccuracy * 0.7 +
+                                                    timeBonus;
+
+                                                // Save comprehensive player results
+                                                const playerResults =
+                                                    savePlayerResults(
+                                                        finalScore,
+                                                        totalTime,
+                                                        averageAccuracy
+                                                    );
+
+                                                if (currentPlayer === 1) {
+                                                    // Player 1 completed - switch to Player 2 and reset the component
+                                                    console.log(
+                                                        "🎯 Player 1 completed via manual complete! Switching to Player 2 and resetting component"
+                                                    );
+
+                                                    // Set transition state
+                                                    setIsPlayerTransition(true);
+                                                    setFeedback(
+                                                        "Player 1 completed! Switching to Player 2..."
+                                                    );
+
+                                                    // Delay the transition to show the message
+                                                    setTimeout(() => {
+                                                        // Reset all training state for Player 2
+                                                        setCurrentPose(0);
+                                                        setScore(100);
+                                                        setAccuracy(0);
+                                                        setPoseTimes({});
+                                                        setPoseAccuracies({});
+                                                        setStopwatchTime(0);
+                                                        setIsStopwatchRunning(
+                                                            false
+                                                        );
+                                                        setPoseStartTime(null);
+                                                        setFeedback(
+                                                            "Player 2's turn! Get ready to begin training."
+                                                        );
+
+                                                        // Switch to Player 2
+                                                        setCurrentPlayer(2);
+
+                                                        // Update window object for consistency
+                                                        window.currentPlayer = 2;
+
+                                                        // Clear transition state
+                                                        setIsPlayerTransition(
+                                                            false
+                                                        );
+                                                    }, 2000);
                                                 } else {
-                                                    navigate("/battlefield");
+                                                    // Player 2 completed - both players done, navigate to results
+                                                    console.log(
+                                                        "🎯 Player 2 completed via manual complete! Both players finished, navigating to results"
+                                                    );
+
+                                                    // Get both players' results from localStorage
+                                                    const player1Results =
+                                                        JSON.parse(
+                                                            localStorage.getItem(
+                                                                "multiplayer_player1_results"
+                                                            ) || "{}"
+                                                        );
+                                                    const player2Results =
+                                                        JSON.parse(
+                                                            localStorage.getItem(
+                                                                "multiplayer_player2_results"
+                                                            ) || "{}"
+                                                        );
+
+                                                    // Navigate to results with comprehensive data
+                                                    navigate(
+                                                        "/multiplayer-results",
+                                                        {
+                                                            state: {
+                                                                player1Score:
+                                                                    player1Results.finalScore ||
+                                                                    0,
+                                                                player2Score:
+                                                                    finalScore,
+                                                                player1Data:
+                                                                    player1Results,
+                                                                player2Data:
+                                                                    playerResults,
+                                                            },
+                                                        }
+                                                    );
                                                 }
                                             }}
                                         >
@@ -1183,7 +1685,7 @@ const MultiplayerDojo = () => {
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
                                     <strong>Pro Tip:</strong> Maintain 90%
-                                    accuracy for 2 seconds to automatically
+                                    accuracy for 3 seconds to automatically
                                     progress to the next pose. Focus on form
                                     over speed for better results.
                                 </AlertDescription>

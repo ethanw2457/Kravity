@@ -17,12 +17,15 @@ const SinglePlayerResults = () => {
     const [sessionData, setSessionData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Function to stop camera if it's running
-    const stopCamera = () => {
+    // Function to stop camera and all background processes
+    const stopAllProcesses = () => {
         try {
-            console.log("🎥 Starting comprehensive camera cleanup...");
+            console.log(
+                "🛑 Starting comprehensive cleanup of all processes..."
+            );
 
-            // Get all video elements that might have camera streams
+            // 1. Stop all camera processes
+            console.log("🎥 Stopping camera processes...");
             const videoElements = document.querySelectorAll("video");
             console.log(`Found ${videoElements.length} video elements`);
 
@@ -70,9 +73,64 @@ const SinglePlayerResults = () => {
                 window.streamRef.current = null;
             }
 
+            // 2. Stop all intervals and timeouts
+            console.log("⏰ Clearing all intervals and timeouts...");
+            // Clear any intervals that might be running
+            for (let i = 1; i < 10000; i++) {
+                clearInterval(i);
+                clearTimeout(i);
+            }
+
+            // 3. Stop any Gemini/AI related processes
+            console.log("🤖 Stopping AI/Gemini processes...");
+
+            // Clear any AI feedback intervals
+            if (window.aiFeedbackInterval) {
+                clearInterval(window.aiFeedbackInterval);
+                window.aiFeedbackInterval = null;
+                console.log("Cleared AI feedback interval");
+            }
+
+            // Clear any pose detection intervals
+            if (window.poseDetectionInterval) {
+                clearInterval(window.poseDetectionInterval);
+                window.poseDetectionInterval = null;
+                console.log("Cleared pose detection interval");
+            }
+
+            // Clear any training intervals
+            if (window.trainingInterval) {
+                clearInterval(window.trainingInterval);
+                window.trainingInterval = null;
+                console.log("Cleared training interval");
+            }
+
+            // Clear any stopwatch intervals
+            if (window.stopwatchInterval) {
+                clearInterval(window.stopwatchInterval);
+                window.stopwatchInterval = null;
+                console.log("Cleared stopwatch interval");
+            }
+
+            // 4. Reset global state variables
+            console.log("🔄 Resetting global state...");
+            window.isTraining = false;
+            window.isStopwatchRunning = false;
+            window.currentPose = 0;
+            window.score = 0;
+            window.accuracy = 0;
+            window.feedback = "";
+            window.isPlayerTransition = false;
+
+            // 5. Abort any pending fetch requests
+            console.log("🌐 Aborting pending requests...");
+            if (window.abortController) {
+                window.abortController.abort();
+                window.abortController = null;
+            }
+
             // Force stop any active getUserMedia streams
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                // This will help ensure any pending camera requests are cancelled
                 console.log("Camera cleanup completed - all streams stopped");
             }
 
@@ -85,27 +143,29 @@ const SinglePlayerResults = () => {
                         video.pause();
                     }
                 });
-                console.log("🎥 Final camera cleanup completed");
+                console.log(
+                    "🎥 Final cleanup completed - all processes stopped"
+                );
             }, 100);
         } catch (error) {
-            console.error("Error stopping camera:", error);
+            console.error("Error stopping processes:", error);
         }
     };
 
-    // Stop camera when component mounts and unmounts
+    // Stop all processes when component mounts and unmounts
     useEffect(() => {
         // Immediate cleanup
-        stopCamera();
+        stopAllProcesses();
 
         // Additional cleanup after a short delay to catch any delayed streams
         const cleanupTimer = setTimeout(() => {
-            stopCamera();
+            stopAllProcesses();
         }, 500);
 
-        // Cleanup function to stop camera when component unmounts
+        // Cleanup function to stop all processes when component unmounts
         return () => {
             clearTimeout(cleanupTimer);
-            stopCamera();
+            stopAllProcesses();
         };
     }, []);
 
@@ -113,7 +173,7 @@ const SinglePlayerResults = () => {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                stopCamera();
+                stopAllProcesses();
             }
         };
 
@@ -415,15 +475,15 @@ const SinglePlayerResults = () => {
                         Your performance analysis is ready
                     </p>
 
-                    {/* Camera Cleanup Button */}
+                    {/* Process Cleanup Button */}
                     <div className="mt-4">
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={stopCamera}
+                            onClick={stopAllProcesses}
                             className="text-xs"
                         >
-                            🎥 Stop Camera (if running)
+                            🛑 Stop All Processes
                         </Button>
                     </div>
                 </div>
