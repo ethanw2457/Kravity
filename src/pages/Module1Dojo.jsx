@@ -745,6 +745,12 @@ const Module1Dojo = () => {
         console.log("Reference angles set:", poseAngles);
         console.log("Reference weights set:", poseWeights);
 
+        console.log("🎥 Starting camera...");
+        setIsTraining(true); // Set training to true BEFORE starting camera
+        console.log("🎥 Training state set to true");
+        await startCamera();
+        console.log("🎥 Camera started, cameraActive should be true now");
+
         // Start real-time feedback after a short delay to allow camera to initialize
         setTimeout(() => {
             startRealtimeFeedback();
@@ -752,6 +758,8 @@ const Module1Dojo = () => {
             console.log("🎯 Generating immediate feedback for first pose");
             generateAIFeedback();
         }, 2000); // 2 second delay
+
+        setFeedback("Position yourself in front of the camera and begin!");
     };
 
     const handlePauseTraining = () => {
@@ -824,7 +832,7 @@ const Module1Dojo = () => {
             } else {
                 console.log("⏸️ Skipping feedback - no pose detection");
             }
-        }, 5000); // 3 seconds
+        }, 6000); // 3 seconds
 
         setFeedbackInterval(interval);
     };

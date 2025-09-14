@@ -46,8 +46,8 @@ export async function generatePoseFeedback(
             );
         }
         const prompt = `
-        You are a martial arts instructor providing feedback on pose training. 
-        
+        You are a martial arts instructor providing feedback on pose training.
+
         Here is some information about the pose being practiced and the user training information:
         Pose Name: ${poseName}
         Pose Description: ${poseDescription}
@@ -55,25 +55,25 @@ export async function generatePoseFeedback(
         Accuracy: ${accuracy}%
         Reference Angles: ${JSON.stringify(referenceAngles)}
         Current Angles: ${JSON.stringify(currentAngles)}
-        
-        Provide constructive feedback in MAXIMUM 1 quick sentence/phrase based off the information provided above so the user can improve their form and technique for the pose. 
+
+        Provide constructive feedback in MAXIMUM 1 quick sentence/phrase based off the information provided above so the user can improve their form and technique for the pose.
         Focus on:
         - Areas for improvement for the pose
         - How they should specifically adjust their body
         - Tips and tricks for added accuracy
-        
+
         Examples:
         - "Your left elbow is too high, try bringing it down"
         - "Your right knee is too low, try lifting it up"
         - "Your left arm is a bit low, raising it a bit more will help"
 
-        Keep the tone positive and supportive. In order for the user to pass the pose, they need to have at least 90% overall accuracy. 
+        Keep the tone positive and supportive. In order for the user to pass the pose, they need to have at least 90% overall accuracy.
         The way accuracy is calculated is based on the difference between the reference angles and the current angles (with a 10 degree tolerance). The difference is then multiplied by the weight of the joint. The overall accuracy is the sum of the weighted accuracies divided by the sum of the weights.
         `;
 
         console.log("🚀 Sending request to Gemini API...");
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.5-flash-lite",
             contents: prompt,
         });
 
@@ -101,7 +101,7 @@ export async function generateSessionFeedback(sessionData) {
         }
         const prompt = `
         You are a martial arts instructor providing overall training session feedback.
-        
+
         Session Summary:
         - Total Score: ${sessionData.totalScore}/${sessionData.maxScore}
         - Average Accuracy: ${sessionData.accuracy}%
@@ -109,13 +109,13 @@ export async function generateSessionFeedback(sessionData) {
         - Poses Completed: ${
             sessionData.poses.filter((p) => p.completed).length
         }/${sessionData.poses.length}
-        
+
         Provide comprehensive feedback in 3-4 sentences covering:
         - Overall performance assessment
         - Specific strengths shown
         - Areas to focus on in future sessions
         - Encouragement and motivation
-        
+
         Keep the tone positive, professional, and motivating.
         `;
 

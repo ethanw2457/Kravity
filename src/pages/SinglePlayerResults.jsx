@@ -20,26 +20,73 @@ const SinglePlayerResults = () => {
     // Function to stop camera if it's running
     const stopCamera = () => {
         try {
+            console.log("🎥 Starting comprehensive camera cleanup...");
+
             // Get all video elements that might have camera streams
             const videoElements = document.querySelectorAll("video");
-            videoElements.forEach((video) => {
+            console.log(`Found ${videoElements.length} video elements`);
+
+            videoElements.forEach((video, index) => {
                 if (video.srcObject) {
                     const stream = video.srcObject;
+                    console.log(`Video ${index} has stream:`, stream);
+
                     if (stream && stream.getTracks) {
-                        stream.getTracks().forEach((track) => {
+                        const tracks = stream.getTracks();
+                        console.log(
+                            `Video ${index} has ${tracks.length} tracks`
+                        );
+
+                        tracks.forEach((track, trackIndex) => {
+                            console.log(
+                                `Stopping track ${trackIndex}:`,
+                                track.kind,
+                                track.label
+                            );
                             track.stop();
-                            console.log("Camera track stopped");
                         });
                     }
                     video.srcObject = null;
+                    video.pause();
                 }
             });
 
-            // Also try to stop any active media streams
+            // Stop any MediaPipe cameras that might be running
+            if (
+                window.mediaPipeCameraRef &&
+                window.mediaPipeCameraRef.current
+            ) {
+                console.log("Stopping MediaPipe camera");
+                window.mediaPipeCameraRef.current.stop();
+                window.mediaPipeCameraRef.current = null;
+            }
+
+            // Clear any global camera references
+            if (window.streamRef && window.streamRef.current) {
+                console.log("Stopping global stream reference");
+                window.streamRef.current
+                    .getTracks()
+                    .forEach((track) => track.stop());
+                window.streamRef.current = null;
+            }
+
+            // Force stop any active getUserMedia streams
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 // This will help ensure any pending camera requests are cancelled
-                console.log("Camera cleanup completed");
+                console.log("Camera cleanup completed - all streams stopped");
             }
+
+            // Additional cleanup for any remaining streams
+            setTimeout(() => {
+                const remainingVideos = document.querySelectorAll("video");
+                remainingVideos.forEach((video) => {
+                    if (video.srcObject) {
+                        video.srcObject = null;
+                        video.pause();
+                    }
+                });
+                console.log("🎥 Final camera cleanup completed");
+            }, 100);
         } catch (error) {
             console.error("Error stopping camera:", error);
         }
@@ -47,11 +94,36 @@ const SinglePlayerResults = () => {
 
     // Stop camera when component mounts and unmounts
     useEffect(() => {
+        // Immediate cleanup
         stopCamera();
+
+        // Additional cleanup after a short delay to catch any delayed streams
+        const cleanupTimer = setTimeout(() => {
+            stopCamera();
+        }, 500);
 
         // Cleanup function to stop camera when component unmounts
         return () => {
+            clearTimeout(cleanupTimer);
             stopCamera();
+        };
+    }, []);
+
+    // Additional cleanup on page visibility change (when user navigates away)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopCamera();
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange
+            );
         };
     }, []);
 
@@ -301,7 +373,7 @@ const SinglePlayerResults = () => {
                 color: "bg-primary",
                 message: "Strong defensive skills!",
             };
-        if (percentage >= 70)
+        if (percentage >= 65)
             return {
                 rating: "GOOD",
                 color: "bg-accent",
@@ -342,6 +414,18 @@ const SinglePlayerResults = () => {
                     <p className="text-lg text-muted-foreground">
                         Your performance analysis is ready
                     </p>
+
+                    {/* Camera Cleanup Button */}
+                    <div className="mt-4">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={stopCamera}
+                            className="text-xs"
+                        >
+                            🎥 Stop Camera (if running)
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Overall Results */}

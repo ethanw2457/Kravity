@@ -12,6 +12,8 @@ import {
     Play,
     Pause,
     ArrowLeft,
+    Users,
+    Crown,
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -21,9 +23,14 @@ import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import poseReferenceAngles from "../data/poseReferenceAngles.json";
 import { generatePoseFeedback } from "../service/geminiService";
 
-const Module2Dojo = () => {
+const MultiplayerDojo = () => {
     const { moduleId } = useParams();
     const navigate = useNavigate();
+
+    // Get multiplayer state from window object (set by Battlefield component)
+    const currentPlayer = window.currentPlayer || 1;
+    const onPlayerComplete = window.multiplayerCompletionHandler || null;
+
     const [currentPose, setCurrentPose] = useState(0);
     const [isTraining, setIsTraining] = useState(false);
     const [accuracy, setAccuracy] = useState(0);
@@ -82,51 +89,50 @@ const Module2Dojo = () => {
     const referenceAnglesRef = useRef(null);
     const referenceWeightsRef = useRef(null);
 
+    // Module 1 poses (same as Module1Dojo)
     const poses = [
         {
             id: 1,
-            name: "Defensive Block Stance with Left Hand",
-            description:
-                "Maintain a balanced defensive stance with hands raised",
+            name: "Guard Position Right Jab",
+            description: "Basic defensive stance with right hand forward",
             keyPoints: [
                 "Feet shoulder-width apart",
-                "Palms open at chin level",
-                "Right leg a step behind the left",
-                "Left arm slightly further out than the right",
+                "Right hand at face level",
+                "Left hand protecting body",
+                "Weight evenly distributed",
             ],
         },
         {
             id: 2,
-            name: "Defensive Block Stance with Right Hand",
-            description:
-                "Maintain a balanced defensive stance with open hands raised",
+            name: "Guard Position Left Jab",
+            description: "Basic defensive stance with left hand forward",
             keyPoints: [
                 "Feet shoulder-width apart",
-                "Palms open at chin level",
-                "Left leg a step behind the right",
-                "Right arm slightly further out than the left",
+                "Left hand at face level",
+                "Right hand protecting body",
+                "Weight evenly distributed",
             ],
         },
         {
             id: 3,
-            name: "Knee Defense with Left Hand",
-            description: "Strike opponent with left knee",
+            name: "Basic Block with Right Hand",
+            description: "Execute a fundamental blocking movement",
             keyPoints: [
-                "Starts in Left Open Ready Stance",
-                "Pull left arm back",
-                "Raise left knee to hip level",
-                "Keep rest of stance steady",
+                "Forearm parallel to ground",
+                "Elbow at 90 degrees",
+                "Strong defensive position",
+                "Ready to counter",
             ],
         },
         {
             id: 4,
-            name: "Knee Defense with Right Hand",
-            description: "Strike opponent with right knee",
+            name: "Basic Block with Left Hand",
+            description: "Return to neutral combat-ready stance",
             keyPoints: [
-                "Starts in Right Open Ready Stance",
-                "Pull right arm back",
-                "Raise right knee to hip level",
-                "Keep rest of stance steady",
+                "Relaxed but alert",
+                "Hands at sides",
+                "Weight balanced",
+                "Ready to react",
             ],
         },
         {
@@ -146,12 +152,12 @@ const Module2Dojo = () => {
     const currentPoseData = poses[currentPose];
 
     const poseImages = {
-        0: "/defensiveBlockLeft.jpg", // Guard Position Right Jab
-        1: "/defensiveBlockRight.jpg", // Guard Position Left Jab
-        2: "/kneeDefenseLeft.jpg", // Basic Block with Right Hand
-        3: "/kneeDefenseRight.jpg", // Basic Block with Left Hand
-        4: "/craneStance.jpg", // Crane Stance
-        5: "/craneKick.jpg", // Crane Kick!
+        0: "/guardRight.jpg",
+        1: "/guardLeft.jpg",
+        2: "/blockRight.jpg",
+        3: "/blockLeft.jpg",
+        4: "/craneStance.jpg",
+        5: "/craneKick.jpg",
     };
 
     // Functions for pose timing and localStorage
@@ -160,50 +166,51 @@ const Module2Dojo = () => {
         const newPoseTimes = { ...poseTimes, [poseKey]: timeInSeconds };
         setPoseTimes(newPoseTimes);
         localStorage.setItem(
-            "module2_pose_times",
+            `module1_pose_times_player${currentPlayer}`,
             JSON.stringify(newPoseTimes)
         );
         console.log(
-            `Pose ${poseIndex + 1} completed in ${timeInSeconds.toFixed(
-                2
-            )} seconds`
+            `Player ${currentPlayer} - Pose ${
+                poseIndex + 1
+            } completed in ${timeInSeconds.toFixed(2)} seconds`
         );
     };
 
     const loadPoseTimes = () => {
-        const saved = localStorage.getItem("module2_pose_times");
+        const saved = localStorage.getItem(
+            `module1_pose_times_player${currentPlayer}`
+        );
         if (saved) {
             const parsed = JSON.parse(saved);
             setPoseTimes(parsed);
-            console.log("Loaded pose times:", parsed);
+            console.log(`Player ${currentPlayer} - Loaded pose times:`, parsed);
         }
     };
 
     // Function to get reference angles and weights for current pose
     const getPoseReferenceData = (poseIndex) => {
         switch (poseIndex) {
-            case 0: // First pose - Defensive Block Stance with Left Hand
-                return poseReferenceAngles.poses.defensiveBlockLeft;
-            case 1: // Second pose - Defensive Block Stance with Right Hand
-                return poseReferenceAngles.poses.defensiveBlockRight;
-            case 2: // Third pose - Knee Defense with Left Hand
-                return poseReferenceAngles.poses.kneeDefenseLeft;
-            case 3: // Fourth pose - Knee Defense with Right Hand
-                return poseReferenceAngles.poses.kneeDefenseRight;
+            case 0: // First pose - Guard Position Right Jab
+                return poseReferenceAngles.poses.guardRight;
+            case 1: // Second pose - Guard Position Left Jab
+                return poseReferenceAngles.poses.guardLeft;
+            case 2: // Third pose - Basic Block with Right Hand
+                return poseReferenceAngles.poses.blockRight;
+            case 3: // Fourth pose - Basic Block with Left Hand
+                return poseReferenceAngles.poses.blockLeft;
             case 4: // Fifth pose - Crane Stance
                 return poseReferenceAngles.poses.crane;
             case 5: // Sixth pose - Crane Kick!
                 return poseReferenceAngles.poses.craneKick;
             default:
-                // Default to guardRight for any additional poses
-                return poseReferenceAngles.poses.defensiveBlockLeft;
+                return poseReferenceAngles.poses.guardRight;
         }
     };
 
     // Load pose times from localStorage on component mount
     useEffect(() => {
         loadPoseTimes();
-    }, []);
+    }, [currentPlayer]);
 
     // Stopwatch timer effect
     useEffect(() => {
@@ -218,7 +225,7 @@ const Module2Dojo = () => {
         return () => clearInterval(interval);
     }, [isStopwatchRunning, stopwatchTime]);
 
-    // MediaPipe initialization
+    // MediaPipe initialization (same as Module1Dojo)
     useEffect(() => {
         const initializeMediaPipe = async () => {
             try {
@@ -274,7 +281,7 @@ const Module2Dojo = () => {
         return Math.round((Math.acos(cos) * 180) / Math.PI);
     };
 
-    // Calculate joint angles from pose landmarks
+    // Calculate joint angles from pose landmarks (same as Module1Dojo)
     const calculateJointAngles = (landmarks) => {
         if (!landmarks || landmarks.length < 33) {
             return {
@@ -303,46 +310,43 @@ const Module2Dojo = () => {
 
         const angles = {
             // Shoulder angles (elbow-shoulder-hip)
-            // Note: Camera shows mirrored view, so left/right labels match what you see
             leftShoulder: calculateAngle(
-                landmarks[LEFT_ELBOW], // What you see as left elbow
-                landmarks[LEFT_SHOULDER], // What you see as left shoulder
-                landmarks[LEFT_HIP] // What you see as left hip
+                landmarks[LEFT_ELBOW],
+                landmarks[LEFT_SHOULDER],
+                landmarks[LEFT_HIP]
             ),
             rightShoulder: calculateAngle(
-                landmarks[RIGHT_ELBOW], // What you see as right elbow
-                landmarks[RIGHT_SHOULDER], // What you see as right shoulder
-                landmarks[RIGHT_HIP] // What you see as right hip
+                landmarks[RIGHT_ELBOW],
+                landmarks[RIGHT_SHOULDER],
+                landmarks[RIGHT_HIP]
             ),
 
             // Elbow angles (bend angle: 180° - internal angle)
-            // Note: Camera shows mirrored view, so left/right labels match what you see
             leftElbow:
                 180 -
                 calculateAngle(
-                    landmarks[LEFT_WRIST], // What you see as left wrist
-                    landmarks[LEFT_ELBOW], // What you see as left elbow
-                    landmarks[LEFT_SHOULDER] // What you see as left shoulder
+                    landmarks[LEFT_WRIST],
+                    landmarks[LEFT_ELBOW],
+                    landmarks[LEFT_SHOULDER]
                 ),
             rightElbow:
                 180 -
                 calculateAngle(
-                    landmarks[RIGHT_WRIST], // What you see as right wrist
-                    landmarks[RIGHT_ELBOW], // What you see as right elbow
-                    landmarks[RIGHT_SHOULDER] // What you see as right shoulder
+                    landmarks[RIGHT_WRIST],
+                    landmarks[RIGHT_ELBOW],
+                    landmarks[RIGHT_SHOULDER]
                 ),
 
             // Knee angles (ankle-knee-hip)
-            // Note: Camera shows mirrored view, so left/right labels match what you see
             leftKnee: calculateAngle(
-                landmarks[LEFT_ANKLE], // What you see as left ankle
-                landmarks[LEFT_KNEE], // What you see as left knee
-                landmarks[LEFT_HIP] // What you see as left hip
+                landmarks[LEFT_ANKLE],
+                landmarks[LEFT_KNEE],
+                landmarks[LEFT_HIP]
             ),
             rightKnee: calculateAngle(
-                landmarks[RIGHT_ANKLE], // What you see as right ankle
-                landmarks[RIGHT_KNEE], // What you see as right knee
-                landmarks[RIGHT_HIP] // What you see as right hip
+                landmarks[RIGHT_ANKLE],
+                landmarks[RIGHT_KNEE],
+                landmarks[RIGHT_HIP]
             ),
         };
 
@@ -350,22 +354,13 @@ const Module2Dojo = () => {
 
         // Calculate overall accuracy based on joint angles
         const currentReferenceAngles = referenceAnglesRef.current;
-        console.log("Reference angles available:", currentReferenceAngles);
         if (currentReferenceAngles) {
             const accuracy = calculateAccuracy(angles, currentReferenceAngles);
-            console.log(
-                "Calculated accuracy:",
-                accuracy,
-                "from angles:",
-                angles
-            );
             setOverallAccuracy(accuracy);
-        } else {
-            console.log("No reference angles set yet, current angles:", angles);
         }
     };
 
-    // Calculate accuracy based on joint angles with degree tolerance
+    // Calculate accuracy based on joint angles with degree tolerance (same as Module1Dojo)
     const calculateAccuracy = (currentAngles, targetAngles) => {
         if (!targetAngles) return 0;
 
@@ -387,22 +382,18 @@ const Module2Dojo = () => {
         // Calculate accuracy for each joint
         Object.keys(currentAngles).forEach((joint) => {
             if (targetAngles[joint] !== undefined) {
-                // Calculate error: absolute difference between real and reference angle
                 const error = Math.abs(
                     currentAngles[joint] - targetAngles[joint]
                 );
-                const tolerance = tolerances[joint] || 5; // Default 5 degree tolerance
+                const tolerance = tolerances[joint] || 5;
 
                 let jointAccuracy;
 
                 if (error <= tolerance) {
-                    // Within tolerance - give high score (90-100%)
-                    // Linear interpolation: 0° error = 100%, tolerance° error = 90%
                     jointAccuracy = 100 - (error / tolerance) * 10;
                 } else {
-                    // Outside tolerance - apply penalty
                     const excessError = error - tolerance;
-                    const k = 2; // 2 points per degree beyond tolerance
+                    const k = 2;
                     jointAccuracy = Math.max(0, 90 - excessError * k);
                 }
 
@@ -411,13 +402,6 @@ const Module2Dojo = () => {
                 jointCount++;
 
                 const weight = weights[joint] || 1.0;
-                console.log(
-                    `${joint}: current=${currentAngles[joint]}°, target=${
-                        targetAngles[joint]
-                    }°, error=${error}°, tolerance=${tolerance}°, weight=${weight}, accuracy=${jointAccuracy.toFixed(
-                        1
-                    )}%`
-                );
             }
         });
 
@@ -434,44 +418,32 @@ const Module2Dojo = () => {
         const overallAccuracy =
             totalWeight > 0 ? weightedTotal / totalWeight : 0;
 
-        // Store individual joint accuracies for potential display
         setIndividualJointAccuracies(jointAccuracies);
-
-        console.log(
-            `Weighted overall accuracy: ${overallAccuracy.toFixed(1)}%`
-        );
-
         return overallAccuracy;
     };
 
-    // Draw pose landmarks on canvas
+    // Draw pose landmarks on canvas (same as Module1Dojo)
     const drawPoseLandmarks = (results) => {
         if (!canvasRef.current || !results.poseLandmarks) return;
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
 
-        // Set canvas size to match video
         if (videoRef.current) {
             canvas.width = videoRef.current.videoWidth;
             canvas.height = videoRef.current.videoHeight;
         }
 
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw pose landmarks
         if (results.poseLandmarks) {
             const landmarks = results.poseLandmarks;
 
-            // Draw skeleton connections manually
             ctx.strokeStyle = "#00FF00";
             ctx.lineWidth = 3;
             ctx.beginPath();
 
-            // Define pose connections (MediaPipe pose landmark indices)
             const connections = [
-                // Face
                 [0, 1],
                 [1, 2],
                 [2, 3],
@@ -480,14 +452,12 @@ const Module2Dojo = () => {
                 [4, 5],
                 [5, 6],
                 [6, 8],
-                // Torso
                 [11, 12],
                 [11, 13],
                 [12, 14],
                 [11, 23],
                 [12, 24],
                 [23, 24],
-                // Left arm
                 [11, 13],
                 [13, 15],
                 [15, 17],
@@ -495,7 +465,6 @@ const Module2Dojo = () => {
                 [15, 21],
                 [17, 19],
                 [19, 21],
-                // Right arm
                 [12, 14],
                 [14, 16],
                 [16, 18],
@@ -503,13 +472,11 @@ const Module2Dojo = () => {
                 [16, 22],
                 [18, 20],
                 [20, 22],
-                // Left leg
                 [23, 25],
                 [25, 27],
                 [27, 29],
                 [27, 31],
                 [29, 31],
-                // Right leg
                 [24, 26],
                 [26, 28],
                 [28, 30],
@@ -517,7 +484,6 @@ const Module2Dojo = () => {
                 [30, 32],
             ];
 
-            // Draw connections
             connections.forEach(([start, end]) => {
                 if (landmarks[start] && landmarks[end]) {
                     const startX = landmarks[start].x * canvas.width;
@@ -531,11 +497,9 @@ const Module2Dojo = () => {
             });
             ctx.stroke();
 
-            // Draw landmarks (joints) on top
             ctx.fillStyle = "#FF0000";
             landmarks.forEach((landmark, index) => {
                 if (landmark.visibility > 0.5) {
-                    // Only draw visible landmarks
                     const x = landmark.x * canvas.width;
                     const y = landmark.y * canvas.height;
                     ctx.beginPath();
@@ -546,7 +510,7 @@ const Module2Dojo = () => {
         }
     };
 
-    // Camera functions
+    // Camera functions (same as Module1Dojo)
     const startCamera = async () => {
         try {
             setCameraError("");
@@ -562,7 +526,6 @@ const Module2Dojo = () => {
             streamRef.current = stream;
             setCameraActive(true);
 
-            // Start pose detection when camera is active
             if (isMediaPipeLoaded && poseDetector && videoRef.current) {
                 startPoseDetection();
             }
@@ -574,7 +537,6 @@ const Module2Dojo = () => {
         }
     };
 
-    // Start pose detection
     const startPoseDetection = () => {
         if (videoRef.current && poseDetector) {
             const camera = new MediaPipeCamera(videoRef.current, {
@@ -592,34 +554,28 @@ const Module2Dojo = () => {
     };
 
     const stopCamera = () => {
-        // Stop the media stream
         if (streamRef.current) {
             streamRef.current.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
         }
 
-        // Clear video element
         if (videoRef.current) {
             videoRef.current.srcObject = null;
         }
 
-        // Stop MediaPipe camera if it's running
         if (mediaPipeCameraRef.current) {
             mediaPipeCameraRef.current.stop();
             mediaPipeCameraRef.current = null;
         }
 
-        // Cancel any animation frames
         if (poseAnimationRef.current) {
             cancelAnimationFrame(poseAnimationRef.current);
             poseAnimationRef.current = null;
         }
 
-        // Reset accuracy and timer when camera stops
         setAccuracy(0);
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
-
         setCameraActive(false);
     };
 
@@ -628,7 +584,6 @@ const Module2Dojo = () => {
         if (streamRef.current && videoRef.current) {
             videoRef.current.srcObject = streamRef.current;
 
-            // Start pose detection when both camera and MediaPipe are ready
             if (cameraActive && isMediaPipeLoaded && poseDetector) {
                 startPoseDetection();
             }
@@ -662,18 +617,15 @@ const Module2Dojo = () => {
         if (isTraining && cameraActive) {
             const interval = setInterval(() => {
                 if (poseResults && poseResults.poseLandmarks) {
-                    // Update accuracy based on actual pose detection
                     if (overallAccuracy > 0) {
                         setAccuracy(overallAccuracy);
                     } else if (poseResults.poseLandmarks) {
-                        // Show that pose is detected but no reference angles set yet
-                        setAccuracy(85); // Default accuracy when pose is detected
+                        setAccuracy(85);
                     }
                 } else {
-                    // No pose detected yet
                     setAccuracy(0);
                 }
-            }, 500); // Update every 0.5 seconds
+            }, 500);
 
             return () => clearInterval(interval);
         }
@@ -682,13 +634,11 @@ const Module2Dojo = () => {
     // Monitor accuracy and manage timer for pose progression
     useEffect(() => {
         if (isTraining && cameraActive && accuracy >= 90) {
-            // Start or continue the timer
             if (!isAccuracyTimerActive) {
                 setIsAccuracyTimerActive(true);
                 setAccuracyTimer(0);
             }
         } else if (isTraining && cameraActive && accuracy < 90) {
-            // Reset timer if accuracy falls below 90%
             if (isAccuracyTimerActive) {
                 setIsAccuracyTimerActive(false);
                 setAccuracyTimer(0);
@@ -703,7 +653,6 @@ const Module2Dojo = () => {
                 setAccuracyTimer((prev) => {
                     const newTime = prev + 1;
                     if (newTime >= 2) {
-                        // Timer reached 2 seconds, progress to next pose
                         progressToNextPose();
                         return 0;
                     }
@@ -716,77 +665,49 @@ const Module2Dojo = () => {
     }, [isAccuracyTimerActive, isTraining, cameraActive]);
 
     const handleStartTraining = async () => {
-        // Reset timer when starting training
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
-
-        // Clear previous AI feedback
         setAiFeedback("");
 
-        // Start stopwatch
         setStopwatchTime(0);
         setIsStopwatchRunning(true);
-
-        // Start timing for this pose
         setPoseStartTime(Date.now());
 
-        // Set reference angles and weights FIRST before starting camera
         const poseData = getPoseReferenceData(currentPose);
         const poseAngles = poseData.angles;
         const poseWeights = poseData.weights;
 
         setReferenceAngles(poseAngles);
-        referenceAnglesRef.current = poseAngles; // Also set ref for immediate access
-        referenceWeightsRef.current = poseWeights; // Store weights for calculation
+        referenceAnglesRef.current = poseAngles;
+        referenceWeightsRef.current = poseWeights;
 
-        console.log("Reference angles set:", poseAngles);
-        console.log("Reference weights set:", poseWeights);
-
-        console.log("🎥 Starting camera...");
-        setIsTraining(true); // Set training to true BEFORE starting camera
-        console.log("🎥 Training state set to true");
+        setIsTraining(true);
         await startCamera();
-        console.log("🎥 Camera started, cameraActive should be true now");
 
-        // Start real-time feedback after a short delay to allow camera to initialize
         setTimeout(() => {
             startRealtimeFeedback();
-            // Also generate immediate feedback for the first pose
-            console.log("🎯 Generating immediate feedback for first pose");
             generateAIFeedback();
-        }, 2000); // 2 second delay
+        }, 2000);
     };
 
     const handlePauseTraining = () => {
         setIsTraining(false);
         stopCamera();
-        // Stop and reset timer when pausing
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
-        // Pause stopwatch
         setIsStopwatchRunning(false);
-        // Stop real-time feedback
         stopRealtimeFeedback();
         setFeedback("Training paused. Click resume when ready.");
     };
 
     // Function to generate AI feedback for the current pose
     const generateAIFeedback = async () => {
-        console.log("🎯 generateAIFeedback called");
         try {
             const currentPoseData = poses[currentPose];
             const currentAngles = jointAngles;
             const referenceAngles = referenceAnglesRef.current;
 
-            console.log("📊 Feedback data:", {
-                currentPoseData,
-                currentAngles,
-                referenceAngles,
-                overallAccuracy,
-            });
-
             if (currentPoseData && referenceAngles) {
-                console.log("✅ Calling generatePoseFeedback...");
                 const feedback = await generatePoseFeedback(
                     currentPoseData.name,
                     currentPoseData.description,
@@ -795,13 +716,10 @@ const Module2Dojo = () => {
                     referenceAngles,
                     currentAngles
                 );
-                console.log("📝 Received feedback:", feedback);
                 setAiFeedback(feedback);
-            } else {
-                console.log("❌ Missing data for feedback generation");
             }
         } catch (error) {
-            console.error("❌ Error generating AI feedback:", error);
+            console.error("Error generating AI feedback:", error);
             setAiFeedback(
                 "Great effort! Keep practicing to improve your form and technique."
             );
@@ -810,24 +728,15 @@ const Module2Dojo = () => {
 
     // Function to start real-time feedback interval
     const startRealtimeFeedback = () => {
-        console.log("🔄 Starting real-time feedback");
-        // Clear any existing interval
         if (feedbackInterval) {
             clearInterval(feedbackInterval);
         }
 
-        // Start new interval for real-time feedback every 5 seconds
         const interval = setInterval(() => {
-            console.log("⏰ Real-time feedback interval triggered", {
-                overallAccuracy,
-            });
             if (overallAccuracy > 0) {
-                console.log("🔄 Generating real-time feedback...");
                 generateAIFeedback();
-            } else {
-                console.log("⏸️ Skipping feedback - no pose detection");
             }
-        }, 6000); // 5 seconds
+        }, 5000);
 
         setFeedbackInterval(interval);
     };
@@ -842,43 +751,29 @@ const Module2Dojo = () => {
 
     // Function to progress to next pose
     const progressToNextPose = () => {
-        // Stop and reset timer immediately
         setAccuracyTimer(0);
         setIsAccuracyTimerActive(false);
-
-        // Reset stopwatch
         setStopwatchTime(0);
         setIsStopwatchRunning(false);
 
-        // Save pose completion time
         if (poseStartTime) {
-            const completionTime = (Date.now() - poseStartTime) / 1000; // Convert to seconds
+            const completionTime = (Date.now() - poseStartTime) / 1000;
             savePoseTime(currentPose, completionTime);
             setPoseStartTime(null);
         }
 
         if (currentPose < poses.length - 1) {
-            // Generate AI feedback for the completed pose BEFORE stopping camera
-            console.log(
-                "🎯 Generating feedback for completed pose before progression"
-            );
             generateAIFeedback();
-
-            // Turn off camera and pause training
             stopCamera();
             setIsTraining(false);
-
-            // Stop real-time feedback
             stopRealtimeFeedback();
 
-            // Move to next pose
             setCurrentPose((prev) => prev + 1);
             setScore((prev) => prev + 5);
             setFeedback(
                 "Pose completed! Click 'Start Training' to begin the next pose."
             );
 
-            // Set reference angles for the new pose
             const nextPoseIndex = currentPose + 1;
             if (nextPoseIndex < poses.length) {
                 const poseData = getPoseReferenceData(nextPoseIndex);
@@ -890,22 +785,22 @@ const Module2Dojo = () => {
                 referenceWeightsRef.current = poseWeights;
             }
         } else {
-            // All poses completed
-            // Generate AI feedback for the final pose BEFORE stopping camera
-            console.log(
-                "🎯 Generating feedback for final pose before completion"
-            );
+            // All poses completed - handle multiplayer completion
             generateAIFeedback();
-
             setIsTraining(false);
             stopCamera();
-
-            // Stop real-time feedback
             stopRealtimeFeedback();
 
             setFeedback("Module completed! Excellent work!");
-            // Navigate to results page after a short delay
-            navigate("/single-player-results");
+
+            // Calculate final score and notify parent component
+            const finalScore = score + accuracy * 0.1; // Bonus for accuracy
+            if (onPlayerComplete) {
+                onPlayerComplete(finalScore);
+            } else {
+                // Fallback: navigate back to battlefield
+                navigate("/battlefield");
+            }
         }
     };
 
@@ -916,14 +811,14 @@ const Module2Dojo = () => {
             <div className="container mx-auto max-w-6xl">
                 {/* Back Button */}
                 <div className="mb-6">
-                    <Link to="/modules">
+                    <Link to="/battlefield">
                         <Button
                             variant="outline"
                             size="sm"
                             className="flex items-center gap-2"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            Back to Modules
+                            Back to Battlefield
                         </Button>
                     </Link>
                 </div>
@@ -931,11 +826,17 @@ const Module2Dojo = () => {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                        Training Dojo
+                        Multiplayer Training Dojo
                     </h1>
-                    <Badge variant="outline" className="text-lg px-4 py-2">
-                        Module 2 - Counter-Attack Combinations
-                    </Badge>
+                    <div className="flex items-center justify-center gap-4">
+                        <Badge variant="outline" className="text-lg px-4 py-2">
+                            Module 1 - Basic Defense Stances
+                        </Badge>
+                        <Badge variant="combat" className="text-lg px-4 py-2">
+                            <Users className="w-4 h-4 mr-2" />
+                            Player {currentPlayer}
+                        </Badge>
+                    </div>
                 </div>
 
                 <div className="grid lg:grid-cols-2 gap-8">
@@ -1062,6 +963,24 @@ const Module2Dojo = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* AI Feedback Display */}
+                            {aiFeedback && (
+                                <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <div className="text-2xl">🤖</div>
+                                        <div>
+                                            <div className="font-semibold text-blue-300 mb-2">
+                                                AI Feedback
+                                            </div>
+                                            <div className="text-sm text-blue-100 leading-relaxed">
+                                                {aiFeedback}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {isTraining && (
                                 <div className="space-y-2">
                                     <Button
@@ -1082,19 +1001,15 @@ const Module2Dojo = () => {
                                                 size="sm"
                                                 className="flex-1 bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
                                                 onClick={() => {
-                                                    // Stop and reset timer immediately
                                                     setAccuracyTimer(0);
                                                     setIsAccuracyTimerActive(
                                                         false
                                                     );
-
-                                                    // Reset stopwatch
                                                     setStopwatchTime(0);
                                                     setIsStopwatchRunning(
                                                         false
                                                     );
 
-                                                    // Set current pose time as null (skipped)
                                                     const poseKey = `pose${
                                                         currentPose + 1
                                                     }`;
@@ -1104,22 +1019,15 @@ const Module2Dojo = () => {
                                                     };
                                                     setPoseTimes(newPoseTimes);
                                                     localStorage.setItem(
-                                                        "module2_pose_times",
+                                                        `module1_pose_times_player${currentPlayer}`,
                                                         JSON.stringify(
                                                             newPoseTimes
                                                         )
                                                     );
-                                                    console.log(
-                                                        `Pose ${
-                                                            currentPose + 1
-                                                        } skipped (time set to null)`
-                                                    );
 
-                                                    // Turn off camera and pause training
                                                     stopCamera();
                                                     setIsTraining(false);
 
-                                                    // Move to next pose
                                                     const nextPose =
                                                         currentPose + 1;
                                                     setCurrentPose(nextPose);
@@ -1127,26 +1035,27 @@ const Module2Dojo = () => {
                                                         (prev) => prev + 5
                                                     );
 
-                                                    // Check if this was the last pose
                                                     if (
                                                         nextPose >= poses.length
                                                     ) {
-                                                        setFeedback(
-                                                            "Module completed! Excellent work!"
-                                                        );
-                                                        // Navigate to results page after a short delay
-                                                        setTimeout(() => {
-                                                            navigate(
-                                                                "/single-player-results"
+                                                        const finalScore =
+                                                            score +
+                                                            accuracy * 0.1;
+                                                        if (onPlayerComplete) {
+                                                            onPlayerComplete(
+                                                                finalScore
                                                             );
-                                                        }, 2000);
+                                                        } else {
+                                                            navigate(
+                                                                "/battlefield"
+                                                            );
+                                                        }
                                                     } else {
                                                         setFeedback(
                                                             "Pose skipped! Click 'Start Training' to begin the next pose."
                                                         );
                                                     }
 
-                                                    // Set reference angles for the new pose
                                                     if (
                                                         nextPose < poses.length
                                                     ) {
@@ -1179,30 +1088,19 @@ const Module2Dojo = () => {
                                             onClick={() => {
                                                 setIsTraining(false);
                                                 stopCamera();
-                                                setFeedback(
-                                                    "Module completed! Excellent work!"
-                                                );
+                                                const finalScore =
+                                                    score + accuracy * 0.1;
+                                                if (onPlayerComplete) {
+                                                    onPlayerComplete(
+                                                        finalScore
+                                                    );
+                                                } else {
+                                                    navigate("/battlefield");
+                                                }
                                             }}
                                         >
                                             Complete
                                         </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* AI Feedback Display */}
-                            {aiFeedback && (
-                                <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                        <div className="text-2xl">🤖</div>
-                                        <div>
-                                            <div className="font-semibold text-blue-300 mb-2">
-                                                AI Feedback
-                                            </div>
-                                            <div className="text-sm text-blue-100 leading-relaxed">
-                                                {aiFeedback}
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -1296,9 +1194,9 @@ const Module2Dojo = () => {
 
                 {/* Navigation */}
                 <div className="flex justify-center mt-8">
-                    <Link to="/modules">
+                    <Link to="/battlefield">
                         <Button variant="tactical" size="lg">
-                            Back to Modules
+                            Back to Battlefield
                         </Button>
                     </Link>
                 </div>
@@ -1307,4 +1205,4 @@ const Module2Dojo = () => {
     );
 };
 
-export default Module2Dojo;
+export default MultiplayerDojo;

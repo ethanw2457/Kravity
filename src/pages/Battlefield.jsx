@@ -3,10 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Users, Crown, Timer, Target, Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 const Battlefield = () => {
+    const navigate = useNavigate();
     const [gameState, setGameState] = useState("setup");
     const [scores, setScores] = useState({ player1: 0, player2: 0 });
     const [currentPlayer, setCurrentPlayer] = useState(1);
@@ -85,10 +86,17 @@ const Battlefield = () => {
                 </div>
             </div>
 
-            <Button variant="combat" size="lg" onClick={handleStartGame}>
-                Enter Battlefield
-                <Users className="w-5 h-5 ml-2" />
-            </Button>
+            <div className="flex gap-4 justify-center">
+                <Link to="/">
+                    <Button variant="tactical" size="lg">
+                        Return to Home
+                    </Button>
+                </Link>
+                <Button variant="combat" size="lg" onClick={handleStartGame}>
+                    Enter Battlefield
+                    <Users className="w-5 h-5 ml-2" />
+                </Button>
+            </div>
         </div>
     );
 
@@ -111,7 +119,7 @@ const Battlefield = () => {
                 </h3>
                 <div className="grid md:grid-cols-3 gap-6 mb-6">
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">4</div>
+                        <div className="text-2xl font-bold text-primary">6</div>
                         <div className="text-sm text-muted-foreground">
                             Combat Poses
                         </div>
@@ -135,21 +143,44 @@ const Battlefield = () => {
                 </div>
 
                 {currentPlayer === 1 && scores.player1 === 0 && (
-                    <Link to="/dojo/1">
-                        <Button variant="hero" size="lg">
+                    <div className="flex gap-4 justify-center">
+                        <Link to="/">
+                            <Button variant="tactical" size="lg">
+                                Return to Home
+                            </Button>
+                        </Link>
+                        <Button
+                            variant="hero"
+                            size="lg"
+                            onClick={() => {
+                                // Store the completion handler in a way that MultiplayerDojo can access it
+                                window.multiplayerCompletionHandler =
+                                    handlePlayerComplete;
+                                window.currentPlayer = 1;
+                                navigate("/multiplayer-dojo");
+                            }}
+                        >
                             Begin Training Module
                             <Shield className="w-5 h-5 ml-2" />
                         </Button>
-                    </Link>
+                    </div>
                 )}
 
                 {currentPlayer === 2 && scores.player2 === 0 && (
-                    <Link to="/dojo/1">
-                        <Button variant="hero" size="lg">
-                            Begin Training Module
-                            <Shield className="w-5 h-5 ml-2" />
-                        </Button>
-                    </Link>
+                    <Button
+                        variant="hero"
+                        size="lg"
+                        onClick={() => {
+                            // Store the completion handler in a way that MultiplayerDojo can access it
+                            window.multiplayerCompletionHandler =
+                                handlePlayerComplete;
+                            window.currentPlayer = 2;
+                            navigate("/multiplayer-dojo");
+                        }}
+                    >
+                        Begin Training Module
+                        <Shield className="w-5 h-5 ml-2" />
+                    </Button>
                 )}
             </Card>
 
