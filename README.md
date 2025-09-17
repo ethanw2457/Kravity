@@ -45,7 +45,10 @@ Check out our full pitch deck for visuals, problem framing, and demo flow:
 - **Alyssa Xu**  
   - [Instagram](https://www.instagram.com/alyssa.x__/)
   - [LinkedIn](https://www.linkedin.com/in/alyssa-xu28/)
-
+  - 
+- **Ankur Senapati**  
+  - [Instagram](https://www.instagram.com/ankur_s14/)
+  - [LinkedIn](https://www.linkedin.com/in/ankur-senapati/)
 ---
 
 ## Hackathon
