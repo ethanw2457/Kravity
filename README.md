@@ -3,7 +3,7 @@
 **Gamifying Self Defense with Machine Learning**
 
 Kravity is a mobile-first AR platform built to make self-defense training fun, accessible, and engaging.  
-Developed at [HopHacks Fall 2025](https://hophacks-fall-2025.devpost.com/) by [Ethan Wang](https://www.linkedin.com/in/ethangwang/) and [Alyssa Xu](https://www.linkedin.com/in/alyssa-xu28/), Kravity transforms physical motion into an interactive self-defense experience through real-time AR tracking, gamification, and personalized feedback.
+Developed at [HopHacks Fall 2025](https://hophacks-fall-2025.devpost.com/) by [Ethan Wang](https://www.linkedin.com/in/ethangwang/), [Alyssa Xu](https://www.linkedin.com/in/alyssa-xu28/), and [Ankur Senapati](https://www.linkedin.com/in/ankur-senapati/), Kravity transforms physical motion into an interactive self-defense experience through real-time AR tracking, gamification, and personalized feedback.
 
 ---
 
